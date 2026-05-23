@@ -1,9 +1,12 @@
 [submodule "libultraship"]
 	path = libultraship
 	url = https://github.com/Jameriquiah/libultraship.git
+	branch = mm-android
 [submodule "OTRExporter"]
 	path = OTRExporter
 	url = https://github.com/Jameriquiah/OTRExporter.git
+	branch = mm-android
 [submodule "ZAPDTR"]
 	path = ZAPDTR
 	url = https://github.com/Jameriquiah/ZAPDTR.git
+	branch = mm-android
