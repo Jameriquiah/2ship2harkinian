@@ -8,10 +8,9 @@
 #include "objects/gameplay_field_keep/gameplay_field_keep.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "overlays/actors/ovl_Obj_Grass/z_obj_grass.h"
+#include "GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_10 | ACTOR_FLAG_20 | ACTOR_FLAG_800000)
-
-#define THIS ((ObjGrassCarry*)thisx)
+#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED | ACTOR_FLAG_THROW_ONLY)
 
 void ObjGrassCarry_Init(Actor* thisx, PlayState* play);
 void ObjGrassCarry_Destroy(Actor* thisx, PlayState* play);
@@ -29,7 +28,7 @@ void ObjGrassCarry_SetupFall(ObjGrassCarry* this);
 void ObjGrassCarry_Fall(ObjGrassCarry* this, PlayState* play);
 void ObjGrassCarry_Draw(Actor* this, PlayState* play);
 
-ActorInit Obj_Grass_Carry_InitVars = {
+ActorProfile Obj_Grass_Carry_Profile = {
     /**/ ACTOR_OBJ_GRASS_CARRY,
     /**/ ACTORCAT_PROP,
     /**/ FLAGS,
@@ -43,7 +42,7 @@ ActorInit Obj_Grass_Carry_InitVars = {
 
 static ColliderCylinderInit sCylinderInit = {
     {
-        COLTYPE_NONE,
+        COL_MATERIAL_NONE,
         AT_ON | AT_TYPE_PLAYER,
         AC_NONE,
         OC1_ON | OC1_TYPE_PLAYER | OC1_TYPE_2,
@@ -51,11 +50,11 @@ static ColliderCylinderInit sCylinderInit = {
         COLSHAPE_CYLINDER,
     },
     {
-        ELEMTYPE_UNK0,
+        ELEM_MATERIAL_UNK0,
         { 0x00400000, 0x00, 0x02 },
         { 0x00000000, 0x00, 0x00 },
-        TOUCH_ON | TOUCH_SFX_NONE,
-        BUMP_NONE,
+        ATELEM_ON | ATELEM_SFX_NONE,
+        ACELEM_NONE,
         OCELEM_ON,
     },
     { 10, 44, 0, { 0, 0, 0 } },
@@ -150,7 +149,7 @@ void ObjGrassCarry_SpawnFragments(Vec3f* basePos, PlayState* play) {
 }
 
 void ObjGrassCarry_Init(Actor* thisx, PlayState* play) {
-    ObjGrassCarry* this = THIS;
+    ObjGrassCarry* this = (ObjGrassCarry*)thisx;
 
     Actor_ProcessInitChain(&this->actor, sInitChain);
     Collider_InitCylinder(play, &this->collider);
@@ -160,7 +159,7 @@ void ObjGrassCarry_Init(Actor* thisx, PlayState* play) {
 }
 
 void ObjGrassCarry_Destroy(Actor* thisx, PlayState* play) {
-    ObjGrassCarry* this = THIS;
+    ObjGrassCarry* this = (ObjGrassCarry*)thisx;
 
     Collider_DestroyCylinder(play, &this->collider);
 
@@ -213,7 +212,9 @@ void ObjGrassCarry_Main(ObjGrassCarry* this, PlayState* play) {
         if (this->grassElem != NULL) {
             this->grassElem->flags |= OBJ_GRASS_ELEM_REMOVED;
         }
-        thisx->draw = ObjGrassCarry_Draw;
+        if (GameInteractor_Should(VB_CARRY_GRASS_DRAW_BE_OVERRIDDEN, true, this)) {
+            thisx->draw = ObjGrassCarry_Draw;
+        }
         thisx->shape.shadowDraw = ActorShadow_DrawCircle;
         thisx->shape.shadowAlpha = 60;
         thisx->shape.shadowScale = 1.0f;
@@ -287,7 +288,9 @@ void ObjGrassCarry_Fall(ObjGrassCarry* this, PlayState* play) {
     if ((this->actor.bgCheckFlags & (BGCHECKFLAG_GROUND | BGCHECKFLAG_GROUND_TOUCH | BGCHECKFLAG_WALL)) || atHit ||
         (this->fallTimer <= 0)) {
         ObjGrassCarry_SpawnFragments(&this->actor.world.pos, play);
-        ObjGrassCarry_DropCollectible(&this->actor.world.pos, this->dropTable, play);
+        if (GameInteractor_Should(VB_GRASS_DROP_COLLECTIBLE, true, ACTOR_OBJ_GRASS_CARRY, this)) {
+            ObjGrassCarry_DropCollectible(&this->actor.world.pos, this->dropTable, play);
+        }
 
         this->actor.draw = NULL;
         this->actor.shape.shadowDraw = NULL;
@@ -307,8 +310,8 @@ void ObjGrassCarry_Fall(ObjGrassCarry* this, PlayState* play) {
         pos.y = this->actor.world.pos.y + this->actor.depthInWater;
 
         for (angle = 0, i = 0; i < 4; i++, angle += 0x4000) {
-            pos.x = (Math_SinS((s32)(Rand_ZeroOne() * 7200.0f) + angle) * 15.0f) + this->actor.world.pos.x;
-            pos.z = (Math_CosS((s32)(Rand_ZeroOne() * 7200.0f) + angle) * 15.0f) + this->actor.world.pos.z;
+            pos.x = this->actor.world.pos.x + (Math_SinS((s32)(Rand_ZeroOne() * 7200.0f) + angle) * 15.0f);
+            pos.z = this->actor.world.pos.z + (Math_CosS((s32)(Rand_ZeroOne() * 7200.0f) + angle) * 15.0f);
             EffectSsGSplash_Spawn(play, &pos, NULL, NULL, 0, 190);
         }
 
@@ -345,7 +348,7 @@ void ObjGrassCarry_Fall(ObjGrassCarry* this, PlayState* play) {
 }
 
 void ObjGrassCarry_Update(Actor* thisx, PlayState* play) {
-    ObjGrassCarry* this = THIS;
+    ObjGrassCarry* this = (ObjGrassCarry*)thisx;
 
     if (this->grassManager == NULL) {
         if ((this->actionFunc != ObjGrassCarry_LiftedUp) && (this->actionFunc != ObjGrassCarry_Fall)) {

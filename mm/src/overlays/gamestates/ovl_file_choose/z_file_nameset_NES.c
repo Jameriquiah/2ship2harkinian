@@ -4,11 +4,13 @@
  * Description: Entering name on a new file, selecting options from the options menu
  */
 
+#include "prevent_bss_reordering.h"
 #include "z_file_select.h"
 #include "z64rumble.h"
 #include "misc/title_static/title_static.h"
 #include "overlays/ovl_file_choose/ovl_file_choose.h"
 #include "BenPort.h"
+#include "2s2h/BenGui/CosmeticEditor.h"
 
 void FileSelect_DrawTexQuadI4(GraphicsContext* gfxCtx, TexturePtr texture, s16 point) {
     OPEN_DISPS(gfxCtx);
@@ -200,7 +202,8 @@ void FileSelect_SetNameEntryVtx(GameState* thisx) {
     gDPPipeSync(POLY_OPA_DISP++);
 
     for (var_t1 = 0, var_s0 = 0x10; var_t1 < 2; var_t1++, var_s0 += 4) {
-        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, this->windowColor[0], this->windowColor[1], this->windowColor[2], 255);
+        gDPSetPrimColorOverride(POLY_OPA_DISP++, 0, 0, this->windowColor[0], this->windowColor[1], this->windowColor[2],
+                                255, COSMETIC_ELEMENT_FILE_SELECT_PLATES);
         gDPSetEnvColor(POLY_OPA_DISP++, 0, 0, 0, 0);
         gDPLoadTextureBlock(POLY_OPA_DISP++, sBackspaceEndTextures[var_t1], G_IM_FMT_IA, G_IM_SIZ_16b,
                             sBackspaceEndWidths[var_t1], 16, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP,
@@ -262,8 +265,8 @@ void FileSelect_SetNameEntryVtx(GameState* thisx) {
     gDPPipeSync(POLY_OPA_DISP++);
     gDPSetCombineLERP(POLY_OPA_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0, PRIMITIVE,
                       ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
-    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, this->windowColor[0], this->windowColor[1], this->windowColor[2],
-                    this->nameEntryBoxAlpha);
+    gDPSetPrimColorOverride(POLY_OPA_DISP++, 0, 0, this->windowColor[0], this->windowColor[1], this->windowColor[2],
+                            this->nameEntryBoxAlpha, COSMETIC_ELEMENT_FILE_SELECT_PLATES);
     gSPVertex(POLY_OPA_DISP++, this->nameEntryVtx, 4, 0);
 
     gDPLoadTextureBlock(POLY_OPA_DISP++, gFileSelFileNameBoxTex, G_IM_FMT_IA, G_IM_SIZ_16b, 108, 16, 0,
@@ -513,15 +516,16 @@ void FileSelect_DrawNameEntry(GameState* thisx) {
                             if (validName) {
                                 Audio_PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                                 gSaveContext.fileNum = this->buttonIndex;
-                                time = ((void)0, gSaveContext.save.time);
+                                time = CURRENT_TIME;
                                 Sram_InitSave(this, sramCtx);
                                 gSaveContext.save.time = time;
 
                                 if (!gSaveContext.flashSaveAvailable) {
                                     this->configMode = CM_NAME_ENTRY_TO_MAIN;
                                 } else {
-                                    Sram_SetFlashPagesDefault(sramCtx, gFlashSaveStartPages[this->buttonIndex * 2],
-                                                              gFlashSpecialSaveNumPages[this->buttonIndex * 2]);
+                                    Sram_SetFlashPagesDefault(
+                                        sramCtx, gFlashSaveStartPages[this->buttonIndex * FLASH_SAVE_MAIN_MULTIPLIER],
+                                        gFlashSpecialSaveNumPages[this->buttonIndex * FLASH_SAVE_MAIN_MULTIPLIER]);
                                     Sram_StartWriteToFlashDefault(sramCtx);
                                     this->configMode = CM_NAME_ENTRY_WAIT_FOR_FLASH_SAVE;
                                 }
@@ -767,7 +771,8 @@ void FileSelect_UpdateOptionsMenu(GameState* thisx) {
         if (!gSaveContext.flashSaveAvailable) {
             this->configMode = CM_OPTIONS_TO_MAIN;
         } else {
-            Sram_SetFlashPagesDefault(sramCtx, gFlashSaveStartPages[8], gFlashSpecialSaveNumPages[8]);
+            Sram_SetFlashPagesDefault(sramCtx, gFlashSaveStartPages[FLASH_SAVE_SRAM_HEADER],
+                                      gFlashSpecialSaveNumPages[FLASH_SAVE_SRAM_HEADER]);
             Sram_StartWriteToFlashDefault(sramCtx);
             this->configMode = CM_OPTIONS_WAIT_FOR_FLASH_SAVE;
         }
@@ -942,20 +947,20 @@ void FileSelect_DrawOptionsImpl_NES_GC(GameState* thisx) {
 
     Matrix_Push();
     Matrix_Translate(0.0f, 0.1f, 0.0f, MTXMODE_APPLY);
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
     gSPVertex(POLY_OPA_DISP++, gOptionsDividerVtx, 12, 0);
     gSP1Quadrangle(POLY_OPA_DISP++, 0, 2, 3, 1, 0);
     Matrix_Pop();
 
     Matrix_Push();
     Matrix_Translate(0.0f, 0.2f, 0.0f, MTXMODE_APPLY);
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
     gSP1Quadrangle(POLY_OPA_DISP++, 4, 6, 7, 5, 0);
     Matrix_Pop();
 
     Matrix_Push();
     Matrix_Translate(0.0f, 0.4f, 0.0f, MTXMODE_APPLY);
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
     gSP1Quadrangle(POLY_OPA_DISP++, 8, 10, 11, 9, 0);
     Matrix_Pop();
 
@@ -1170,21 +1175,21 @@ void FileSelect_DrawOptionsImpl(GameState* thisx) {
 
     Matrix_Push();
     Matrix_Translate(0.0f, 0.1f, 0.0f, MTXMODE_APPLY);
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
     gSPVertex(POLY_OPA_DISP++, gOptionsDividerTopVtx, 4, 0);
     gSP1Quadrangle(POLY_OPA_DISP++, 0, 2, 3, 1, 0);
     Matrix_Pop();
 
     Matrix_Push();
     Matrix_Translate(0.0f, 0.2f, 0.0f, MTXMODE_APPLY);
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
     gSPVertex(POLY_OPA_DISP++, gOptionsDividerMiddleVtx, 4, 0);
     gSP1Quadrangle(POLY_OPA_DISP++, 0, 2, 3, 1, 0);
     Matrix_Pop();
 
     Matrix_Push();
     Matrix_Translate(0.0f, 0.4f, 0.0f, MTXMODE_APPLY);
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
     gSPVertex(POLY_OPA_DISP++, gOptionsDividerBottomVtx, 4, 0);
     gSP1Quadrangle(POLY_OPA_DISP++, 0, 2, 3, 1, 0);
     Matrix_Pop();
@@ -1262,16 +1267,9 @@ void FileSelect_DrawOptionsImpl(GameState* thisx) {
 
         //! @bug the gOptionsMenuHeaders usage here will produce an OoB read for i == 5. It reads the first element of
         //! `gOptionsMenuSettings`
-        // 2S2H [Port] - directly use first element of gOptionsMenuSettings when i == 5, note this is fixed in the GC-US
-        // version
-        u16 height;
-        if (i == 5) {
-            height = gOptionsMenuSettings[0].height;
-        } else {
-            height = gOptionsMenuHeaders[i].height;
-        }
+        // 2S2H [Port] Use `gOptionsMenuSettings` instead for correct height values matching textures
         gDPLoadTextureBlock(POLY_OPA_DISP++, gOptionsMenuSettings[i].texture, G_IM_FMT_IA, G_IM_SIZ_8b,
-                            gOptionsMenuSettings[i].width, height, 0, G_TX_NOMIRROR | G_TX_WRAP,
+                            gOptionsMenuSettings[i].width, gOptionsMenuSettings[i].height, 0, G_TX_NOMIRROR | G_TX_WRAP,
                             G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         gSP1Quadrangle(POLY_OPA_DISP++, vtx, vtx + 2, vtx + 3, vtx + 1, 0);
     }

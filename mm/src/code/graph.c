@@ -3,7 +3,9 @@
 #include "regs.h"
 #include "functions.h"
 #include "fault.h"
-#include <libultraship/bridge.h>
+#include <libultraship/bridge/gfxdebuggerbridge.h>
+#include <libultraship/bridge/consolevariablebridge.h>
+#include <libultraship/bridge/windowbridge.h>
 #include <string.h>
 
 // Variables are put before most headers as a hacky way to bypass bss reordering
@@ -102,7 +104,7 @@ GameStateOverlay* Graph_GetNextGameState(GameState* gameState) {
 uintptr_t Graph_FaultAddrConv(uintptr_t address, void* param) {
     uintptr_t addr = address;
     GameStateOverlay* gameStateOvl = &gGameStateOverlayTable[0];
-    size_t ramConv;
+    uintptr_t ramConv;
     void* ramStart;
     size_t diff;
     s32 i;
@@ -334,10 +336,15 @@ void Graph_ExecuteAndDraw(GraphicsContext* gfxCtx, GameState* gameState) {
 
         gRSPGfxTimeTotal = gRSPGfxTimeAcc;
         gRSPAudioTimeTotal = gRSPAudioTimeAcc;
-        gRDPTimeTotal = gRDPTimeAcc;
+        // #region @2S2H [Port] gRDPTimeAcc is usually set in Sched_HandleRDPDone, which
+        // is currently never called and stubbed out in the port. For now we're
+        // just opting to set this to the time per frame / 10 instead, no idea
+        // how bad of an idea this is. :)
+        gRDPTimeTotal = (time - gRDPTimeAcc) / 10;
         gRSPGfxTimeAcc = 0;
         gRSPAudioTimeAcc = 0;
-        gRDPTimeAcc = 0;
+        gRDPTimeAcc = time;
+        // #endregion
 
         if (sGraphPrevUpdateEndTime != 0) {
             gGraphUpdatePeriod = time - sGraphPrevUpdateEndTime;
@@ -351,19 +358,6 @@ void Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 
     Graph_UpdateGame(gameState);
     Graph_ExecuteAndDraw(gfxCtx, gameState);
-
-    // 2S2H [Debug] Decomp didn't contain the original code that would allow for this, so this is stolen from ship
-    if (CVarGetInteger("gDeveloperTools.DebugEnabled", 0)) {
-        if (CHECK_BTN_ALL(gameState->input[0].press.button, BTN_Z) &&
-            CHECK_BTN_ALL(gameState->input[0].cur.button, BTN_L | BTN_R)) {
-            STOP_GAMESTATE(gameState);
-            gSaveContext.gameMode = GAMEMODE_NORMAL;
-            gSaveContext.nextDayTime = NEXT_TIME_NONE;
-            gSaveContext.nextTransitionType = TRANS_NEXT_TYPE_DEFAULT;
-            gSaveContext.prevHudVisibility = HUD_VISIBILITY_ALL;
-            SET_NEXT_GAMESTATE(gameState, MapSelect_Init, sizeof(MapSelectState));
-        }
-    }
 }
 
 static struct RunFrameContext {

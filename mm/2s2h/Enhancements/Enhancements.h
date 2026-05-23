@@ -1,23 +1,6 @@
 #ifndef ENHANCEMENTS_H
 #define ENHANCEMENTS_H
 
-#include "Camera/Camera.h"
-#include "Cheats/Cheats.h"
-#include "Cutscenes/Cutscenes.h"
-#include "Cycle/Cycle.h"
-#include "Dialogue/Dialogue.h"
-#include "Equipment/Equipment.h"
-#include "Fixes/Fixes.h"
-#include "Graphics/Graphics.h"
-#include "Masks/Masks.h"
-#include "Minigames/Minigames.h"
-#include "Modes/Modes.h"
-#include "Player/Player.h"
-#include "Restorations/Restorations.h"
-#include "Saving/SavingEnhancements.h"
-#include "Songs/Songs.h"
-#include "DifficultyOptions/DifficultyOptions.h"
-
 enum AlwaysWinDoggyRaceOptions {
     ALWAYS_WIN_DOGGY_RACE_OFF,
     ALWAYS_WIN_DOGGY_RACE_MASKOFTRUTH,
@@ -42,14 +25,41 @@ enum CremiaRewardsOptions {
     CREMIA_REWARD_ALWAYS_RUPEE,
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+enum AmmoBuybackOptions {
+    AMMO_BUYBACK_VANILLA,
+    AMMO_BUYBACK_FULL_PRICE,
+    AMMO_BUYBACK_HALF_PRICE,
+};
 
-void InitEnhancements();
+enum GibdoTradeSequenceOptions {
+    GIBDO_TRADE_SEQUENCE_VANILLA,
+    GIBDO_TRADE_SEQUENCE_MM3D,
+    GIBDO_TRADE_SEQUENCE_NO_TRADE,
+};
 
-#ifdef __cplusplus
-}
-#endif
+enum DekuGuardSearchBallsOptions {
+    DEKU_GUARD_SEARCH_BALLS_NIGHT_ONLY,
+    DEKU_GUARD_SEARCH_BALLS_NEVER,
+    DEKU_GUARD_SEARCH_BALLS_ALWAYS,
+};
+
+enum HiddenGrottosVisibilityOptions {
+    HIDDEN_GROTTOS_VISIBLITY_OFF,
+    HIDDEN_GROTTOS_VISIBLITY_WEAR_MASK_OF_TRUTH,
+    HIDDEN_GROTTOS_VISIBLITY_HAVE_MASK_OF_TRUTH,
+    HIDDEN_GROTTOS_VISIBLITY_ALWAYS,
+};
+
+enum TimerDisplayOptions {
+    TIMER_DISPLAY_NONE,
+    TIMER_DISPLAY_RTA,
+    TIMER_DISPLAY_IGT,
+};
+
+enum GoronRaceDifficultyOptions {
+    GORON_RACE_DIFFICULTY_VANILLA,
+    GORON_RACE_DIFFICULTY_BALANCED,
+    GORON_RACE_DIFFICULTY_SKIP,
+};
 
 #endif // ENHANCEMENTS_H

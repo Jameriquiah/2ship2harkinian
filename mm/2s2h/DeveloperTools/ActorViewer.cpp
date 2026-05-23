@@ -2,10 +2,12 @@
 #include "2s2h/BenGui/UIWidgets.hpp"
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include "2s2h/NameTag/NameTag.h"
+#include "2s2h/ObjectExtension/ActorListIndex.h"
 #include <spdlog/fmt/fmt.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "2s2h/ShipUtils.h"
 
 extern "C" {
 #include "z64actor.h"
@@ -20,43 +22,8 @@ typedef struct ActorInfo {
     Vec3s rot;
 } ActorInfo;
 
-std::array<const char*, ACTORCAT_MAX> acMapping = { "Switch", "Background",  "Player", "Explosive", "NPC",  "Enemy",
-                                                    "Prop",   "Item/Action", "Misc.",  "Boss",      "Door", "Chest" };
-
-#define DEFINE_ACTOR(name, _enumValue, _allocType, _debugName, _humanName) { _enumValue, _humanName },
-#define DEFINE_ACTOR_INTERNAL(_name, _enumValue, _allocType, _debugName, _humanName) { _enumValue, _humanName },
-#define DEFINE_ACTOR_UNSET(_enumValue) { _enumValue, "Unset" },
-
-std::unordered_map<s16, const char*> actorDescriptions = {
-#include "tables/actor_table.h"
-};
-
-#undef DEFINE_ACTOR
-#undef DEFINE_ACTOR_INTERNAL
-#undef DEFINE_ACTOR_UNSET
-
-#define DEFINE_ACTOR(name, _enumValue, _allocType, _debugName, _humanName) { _enumValue, _debugName },
-#define DEFINE_ACTOR_INTERNAL(_name, _enumValue, _allocType, _debugName, _humanName) { _enumValue, _debugName },
-#define DEFINE_ACTOR_UNSET(_enumValue) { _enumValue, "Unset" },
-
-std::unordered_map<s16, const char*> actorDebugNames = {
-#include "tables/actor_table.h"
-};
-
-#undef DEFINE_ACTOR
-#undef DEFINE_ACTOR_INTERNAL
-#undef DEFINE_ACTOR_UNSET
-
 #define DEBUG_ACTOR_NAMETAG_TAG "debug_actor_viewer"
 #define CVAR_ACTOR_NAME_TAGS(val) "gDeveloperTools.ActorNameTags." val
-
-std::string GetActorDescription(u16 actorNum) {
-    return actorDescriptions.contains(actorNum) ? actorDescriptions[actorNum] : "???";
-}
-
-std::string GetActorDebugName(u16 actorNum) {
-    return actorDebugNames.contains(actorNum) ? actorDebugNames[actorNum] : "???";
-}
 
 std::vector<Actor*> GetCurrentSceneActors() {
     if (!gPlayState) {
@@ -118,10 +85,13 @@ void ActorViewer_AddTagForActor(Actor* actor) {
         parts.push_back(GetActorDescription(actor->id));
     }
     if (CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayCategory"), 0)) {
-        parts.push_back(acMapping[actor->category]);
+        parts.push_back(GetActorCategoryName(actor->category));
     }
     if (CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayParams"), 0)) {
         parts.push_back(fmt::format("0x{:04X} ({})", (u16)actor->params, actor->params));
+    }
+    if (CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayActorListIndex"), 0)) {
+        parts.push_back(fmt::format("{}", GetActorListIndex(actor)));
     }
 
     std::string tag = "";
@@ -190,31 +160,34 @@ void ActorViewerWindow::DrawElement() {
             ImGui::SeparatorText("Options");
 
             toggled = UIWidgets::CVarCheckbox("Actor Name Tags", CVAR_ACTOR_NAME_TAGS("Enabled"),
-                                              { .tooltip = "Adds \"name tags\" above actors for identification" });
+                                              { { .tooltip = "Adds \"name tags\" above actors for identification" } });
 
             ImGui::SameLine();
 
-            UIWidgets::Button("Display Items", { .tooltip = "Click to add display items on the name tags" });
+            UIWidgets::Button("Display Items", { { .tooltip = "Click to add display items on the name tags" } });
 
             if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonLeft | ImGuiPopupFlags_NoReopen)) {
                 optionChange |= UIWidgets::CVarCheckbox("ID", CVAR_ACTOR_NAME_TAGS("DisplayID"));
                 optionChange |= UIWidgets::CVarCheckbox("Description", CVAR_ACTOR_NAME_TAGS("DisplayDescription"));
                 optionChange |= UIWidgets::CVarCheckbox("Category", CVAR_ACTOR_NAME_TAGS("DisplayCategory"));
                 optionChange |= UIWidgets::CVarCheckbox("Params", CVAR_ACTOR_NAME_TAGS("DisplayParams"));
+                optionChange |=
+                    UIWidgets::CVarCheckbox("Actor List Index", CVAR_ACTOR_NAME_TAGS("DisplayActorListIndex"));
 
                 ImGui::EndPopup();
             }
 
             optionChange |= UIWidgets::CVarCheckbox(
                 "Name tags with Z-Buffer", CVAR_ACTOR_NAME_TAGS("WithZBuffer"),
-                { .tooltip = "Allow name tags to be obstructed when behind geometry and actors" });
+                { { .tooltip = "Allow name tags to be obstructed when behind geometry and actors" } });
 
             if (toggled || optionChange) {
                 bool tagsEnabled = CVarGetInteger(CVAR_ACTOR_NAME_TAGS("Enabled"), 0);
                 bool noOptionsEnabled = !CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayID"), 0) &&
                                         !CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayDescription"), 0) &&
                                         !CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayCategory"), 0) &&
-                                        !CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayParams"), 0);
+                                        !CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayParams"), 0) &&
+                                        !CVarGetInteger(CVAR_ACTOR_NAME_TAGS("DisplayActorListIndex"), 0);
 
                 // Save the user an extra click and prevent adding "empty" tags by enabling,
                 // disabling, or setting an option based on what changed
@@ -244,7 +217,7 @@ void ActorViewerWindow::DrawElement() {
                     u8 count = 0;
                     u8 prev_category = 0xff;
                     for (size_t i = 0; i < list.size(); i++) {
-                        std::string label = acMapping[list[i]->category];
+                        std::string label = GetActorCategoryName(list[i]->category);
                         if (list[i]->category != prev_category) {
                             prev_category = list[i]->category;
                             count = 1;
@@ -267,7 +240,7 @@ void ActorViewerWindow::DrawElement() {
                 ImGui::BeginGroup();
                 ImGui::Text("ID: %hd", selectedActor->id);
                 ImGui::Text("Description: %s", GetActorDescription(selectedActor->id).c_str());
-                ImGui::Text("Category: %s", acMapping[selectedActor->category]);
+                ImGui::Text("Category: %s", GetActorCategoryName(selectedActor->category).c_str());
                 ImGui::Text("Params: %hd", selectedActor->params);
                 ImGui::EndGroup();
 
@@ -349,13 +322,13 @@ void ActorViewerWindow::DrawElement() {
                 }
             }
 
-            if (UIWidgets::Button("Fetch: Target", { .tooltip = "Grabs actor with target arrow above it." })) {
+            if (UIWidgets::Button("Fetch: Target", { { .tooltip = "Grabs actor with target arrow above it." } })) {
                 Player* player = GET_PLAYER(gPlayState);
-                if (player->lockOnActor != nullptr) {
-                    SetSelectedActor(player->lockOnActor);
+                if (player->focusActor != nullptr) {
+                    SetSelectedActor(player->focusActor);
                 }
             }
-            if (UIWidgets::Button("Fetch: Held", { .tooltip = "Grabs actor Link is currently holding." })) {
+            if (UIWidgets::Button("Fetch: Held", { { .tooltip = "Grabs actor Link is currently holding." } })) {
                 Player* player = GET_PLAYER(gPlayState);
                 if (player->heldActor != nullptr) {
                     SetSelectedActor(player->heldActor);

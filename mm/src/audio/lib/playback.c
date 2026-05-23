@@ -1,14 +1,15 @@
 #include "global.h"
 #include "audio/effects.h"
 #include "BenPort.h"
+#include <libultraship/bridge/consolevariablebridge.h>
 
 void AudioPlayback_NoteSetResamplingRate(NoteSampleState* sampleState, f32 resamplingRateInput);
 void AudioPlayback_AudioListPushFront(AudioListItem* list, AudioListItem* item);
 void AudioPlayback_NoteInitForLayer(Note* note, SequenceLayer* layer);
 
-SoundFont* ResourceMgr_LoadAudioSoundFont(const char* path);
+SoundFont* ResourceMgr_LoadAudioSoundFontByName(const char* path);
 
-extern char* gFontToResource[256];
+extern char** gFontMap;
 
 void AudioPlayback_InitSampleState(Note* note, NoteSampleState* sampleState, NoteSubAttributes* subAttrs) {
     f32 volLeft;
@@ -17,13 +18,13 @@ void AudioPlayback_InitSampleState(Note* note, NoteSampleState* sampleState, Not
     u64 pad;
     u8 strongLeft;
     u8 strongRight;
-    f32 vel;
+    f32 velocity;
     u8 pan;
     u8 targetReverbVol;
     StereoData stereoData;
     s32 stereoHeadsetEffects = note->playbackState.stereoHeadsetEffects;
 
-    vel = subAttrs->velocity;
+    velocity = subAttrs->velocity;
     pan = subAttrs->pan;
     targetReverbVol = subAttrs->targetReverbVol;
     stereoData = subAttrs->stereoData;
@@ -106,12 +107,12 @@ void AudioPlayback_InitSampleState(Note* note, NoteSampleState* sampleState, Not
         volRight = gDefaultPanVolume[0x7F - pan];
     }
 
-    vel = 0.0f > vel ? 0.0f : vel;
-    vel = 1.0f < vel ? 1.0f : vel;
+    velocity = 0.0f > velocity ? 0.0f : velocity;
+    velocity = 1.0f < velocity ? 1.0f : velocity;
 
     float master_vol = CVarGetFloat("gSettings.Audio.MasterVolume", 1.0f);
-    sampleState->targetVolLeft = (s32)((vel * volLeft) * (0x1000 - 0.001f)) * master_vol;
-    sampleState->targetVolRight = (s32)((vel * volRight) * (0x1000 - 0.001f)) * master_vol;
+    sampleState->targetVolLeft = (s32)((velocity * volLeft) * (0x1000 - 0.001f)) * master_vol;
+    sampleState->targetVolRight = (s32)((velocity * volRight) * (0x1000 - 0.001f)) * master_vol;
 
     sampleState->gain = subAttrs->gain;
     sampleState->filter = subAttrs->filter;
@@ -131,7 +132,11 @@ void AudioPlayback_NoteSetResamplingRate(NoteSampleState* sampleState, f32 resam
     } else {
         sampleState->bitField1.hasTwoParts = true;
         if (resamplingRateInput > 3.99996f) {
-            resamplingRate = 1.99998f;
+            if (sampleState->bitField1.isSyntheticWave) {
+                resamplingRate = resamplingRateInput * 0.25;
+            } else {
+                resamplingRate = 1.99998f;
+            }
         } else {
             resamplingRate = resamplingRateInput * 0.5f;
         }
@@ -153,6 +158,7 @@ void AudioPlayback_NoteInit(Note* note) {
     note->sampleState = gDefaultSampleState;
 }
 
+extern void aOPUSFree(struct OggOpusFile* opusFile);
 void AudioPlayback_NoteDisable(Note* note) {
     if (note->sampleState.bitField0.needsInit == true) {
         note->sampleState.bitField0.needsInit = false;
@@ -165,6 +171,11 @@ void AudioPlayback_NoteDisable(Note* note) {
     note->playbackState.prevParentLayer = NO_LAYER;
     note->playbackState.adsr.action.s.status = ADSR_STATUS_DISABLED;
     note->playbackState.adsr.current = 0;
+    // 2S2H [Custom Audio] Free the decoded opus data if needed.
+    if (note->synthesisState.opusFile != NULL) {
+        aOPUSFree(note->synthesisState.opusFile);
+        note->synthesisState.opusFile = NULL;
+    }
 }
 
 void AudioPlayback_ProcessNotes(void) {
@@ -366,7 +377,8 @@ Instrument* AudioPlayback_GetInstrumentInner(s32 fontId, s32 instId) {
     }
 
     int instCnt = 0;
-    SoundFont* sf = ResourceMgr_LoadAudioSoundFont(gFontToResource[fontId]);
+    // 2S2H [Port] Audio assets in the archive
+    SoundFont* sf = ResourceMgr_LoadAudioSoundFontByName(gFontMap[fontId]);
 
     if (instId >= sf->numInstruments)
         return NULL;
@@ -392,8 +404,8 @@ Drum* AudioPlayback_GetDrum(s32 fontId, s32 drumId) {
         gAudioCtx.audioErrorFlags = AUDIO_ERROR(0, fontId, AUDIO_ERROR_FONT_NOT_LOADED);
         return NULL;
     }
-
-    SoundFont* sf = ResourceMgr_LoadAudioSoundFont(gFontToResource[fontId]);
+    // 2S2H [Port] Audio assets in the archive
+    SoundFont* sf = ResourceMgr_LoadAudioSoundFontByName(gFontMap[fontId]);
     if (drumId < sf->numDrums) {
         drum = sf->drums[drumId];
     }
@@ -416,8 +428,8 @@ SoundEffect* AudioPlayback_GetSoundEffect(s32 fontId, s32 sfxId) {
         gAudioCtx.audioErrorFlags = AUDIO_ERROR(0, fontId, AUDIO_ERROR_FONT_NOT_LOADED);
         return NULL;
     }
-
-    SoundFont* sf = ResourceMgr_LoadAudioSoundFont(gFontToResource[fontId]);
+    // 2S2H [Port] Audio assets in the archive
+    SoundFont* sf = ResourceMgr_LoadAudioSoundFontByName(gFontMap[fontId]);
     if (sfxId < sf->numSfx) {
         soundEffect = &sf->soundEffects[sfxId];
     }
@@ -706,11 +718,14 @@ void AudioPlayback_NotePoolClear(NotePool* pool) {
                 source = &pool->active;
                 dest = &gAudioCtx.noteFreeLists.active;
                 break;
+
+            default:
+                break;
         }
 
-        for (;;) {
+        while (true) {
             cur = source->next;
-            if (cur == source || cur == NULL) {
+            if ((cur == source) || (cur == NULL)) {
                 break;
             }
             AudioPlayback_AudioListRemove(cur);

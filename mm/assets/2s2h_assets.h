@@ -133,3 +133,273 @@ static const ALIGN_ASSET(2) char gFileSelFourthDayTex[] = dgFileSelFourthDayTex;
 
 #define dgFileSelCheatingDayTex "__OTR__misc/title_static/gFileSelCheatingDayTex"
 static const ALIGN_ASSET(2) char gFileSelCheatingDayTex[] = dgFileSelCheatingDayTex;
+
+#define dgFileSelRandIconTex "__OTR__misc/title_static/gFileSelRandIconTex"
+static const ALIGN_ASSET(2) char gFileSelRandIconTex[] = dgFileSelRandIconTex;
+
+#define dgBoxChestCornerHealthTex "__OTR__objects/object_box/gBoxChestCornerHealthTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerHealthTex[] = dgBoxChestCornerHealthTex;
+
+#define dgBoxChestCornerLesserTex "__OTR__objects/object_box/gBoxChestCornerLesserTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerLesserTex[] = dgBoxChestCornerLesserTex;
+
+#define dgBoxChestCornerMajorTex "__OTR__objects/object_box/gBoxChestCornerMajorTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerMajorTex[] = dgBoxChestCornerMajorTex;
+
+#define dgBoxChestCornerMaskTex "__OTR__objects/object_box/gBoxChestCornerMaskTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerMaskTex[] = dgBoxChestCornerMaskTex;
+
+#define dgBoxChestCornerSkullTokenTex "__OTR__objects/object_box/gBoxChestCornerSkullTokenTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerSkullTokenTex[] = dgBoxChestCornerSkullTokenTex;
+
+#define dgBoxChestCornerSmallKeyTex "__OTR__objects/object_box/gBoxChestCornerSmallKeyTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerSmallKeyTex[] = dgBoxChestCornerSmallKeyTex;
+
+#define dgBoxChestCornerStrayFairyTex "__OTR__objects/object_box/gBoxChestCornerStrayFairyTex"
+static const ALIGN_ASSET(2) char gBoxChestCornerStrayFairyTex[] = dgBoxChestCornerStrayFairyTex;
+
+#define dgBoxChestLockHealthTex "__OTR__objects/object_box/gBoxChestLockHealthTex"
+static const ALIGN_ASSET(2) char gBoxChestLockHealthTex[] = dgBoxChestLockHealthTex;
+
+#define dgBoxChestLockLesserTex "__OTR__objects/object_box/gBoxChestLockLesserTex"
+static const ALIGN_ASSET(2) char gBoxChestLockLesserTex[] = dgBoxChestLockLesserTex;
+
+#define dgBoxChestLockMajorTex "__OTR__objects/object_box/gBoxChestLockMajorTex"
+static const ALIGN_ASSET(2) char gBoxChestLockMajorTex[] = dgBoxChestLockMajorTex;
+
+#define dgBoxChestLockMaskTex "__OTR__objects/object_box/gBoxChestLockMaskTex"
+static const ALIGN_ASSET(2) char gBoxChestLockMaskTex[] = dgBoxChestLockMaskTex;
+
+#define dgBoxChestLockSkullTokenTex "__OTR__objects/object_box/gBoxChestLockSkullTokenTex"
+static const ALIGN_ASSET(2) char gBoxChestLockSkullTokenTex[] = dgBoxChestLockSkullTokenTex;
+
+#define dgBoxChestLockSmallKeyTex "__OTR__objects/object_box/gBoxChestLockSmallKeyTex"
+static const ALIGN_ASSET(2) char gBoxChestLockSmallKeyTex[] = dgBoxChestLockSmallKeyTex;
+
+#define dgBoxChestLockStrayFairyTex "__OTR__objects/object_box/gBoxChestLockStrayFairyTex"
+static const ALIGN_ASSET(2) char gBoxChestLockStrayFairyTex[] = dgBoxChestLockStrayFairyTex;
+
+#define dgPotBossKeyDL "__OTR__objects/object_tsubo/gPotBossKeyDL"
+static const ALIGN_ASSET(2) char gPotBossKeyDL[] = dgPotBossKeyDL;
+
+#define dgPotFairyDL "__OTR__objects/object_tsubo/gPotFairyDL"
+static const ALIGN_ASSET(2) char gPotFairyDL[] = dgPotFairyDL;
+
+#define dgPotHeartDL "__OTR__objects/object_tsubo/gPotHeartDL"
+static const ALIGN_ASSET(2) char gPotHeartDL[] = dgPotHeartDL;
+
+#define dgPotMajorDL "__OTR__objects/object_tsubo/gPotMajorDL"
+static const ALIGN_ASSET(2) char gPotMajorDL[] = dgPotMajorDL;
+
+#define dgPotMaskDL "__OTR__objects/object_tsubo/gPotMaskDL"
+static const ALIGN_ASSET(2) char gPotMaskDL[] = dgPotMaskDL;
+
+#define dgPotMinorDL "__OTR__objects/object_tsubo/gPotMinorDL"
+static const ALIGN_ASSET(2) char gPotMinorDL[] = dgPotMinorDL;
+
+#define dgPotRandomDL "__OTR__objects/object_tsubo/gPotRandomDL"
+static const ALIGN_ASSET(2) char gPotRandomDL[] = dgPotRandomDL;
+
+#define dgPotSmallKeyDL "__OTR__objects/object_tsubo/gPotSmallKeyDL"
+static const ALIGN_ASSET(2) char gPotSmallKeyDL[] = dgPotSmallKeyDL;
+
+#define dgPotStandardDL "__OTR__objects/object_tsubo/gPotStandardDL"
+static const ALIGN_ASSET(2) char gPotStandardDL[] = dgPotStandardDL;
+
+#define dgPotTokenDL "__OTR__objects/object_tsubo/gPotTokenDL"
+static const ALIGN_ASSET(2) char gPotTokenDL[] = dgPotTokenDL;
+
+#define dgLargeMajorCrateDL "__OTR__objects/object_kibako2/gLargeMajorCrateDL"
+static const ALIGN_ASSET(2) char gLargeMajorCrateDL[] = dgLargeMajorCrateDL;
+
+#define dgLargeMaskCrateDL "__OTR__objects/object_kibako2/gLargeMaskCrateDL"
+static const ALIGN_ASSET(2) char gLargeMaskCrateDL[] = dgLargeMaskCrateDL;
+
+#define dgLargeMinorCrateDL "__OTR__objects/object_kibako2/gLargeMinorCrateDL"
+static const ALIGN_ASSET(2) char gLargeMinorCrateDL[] = dgLargeMinorCrateDL;
+
+#define dgLargeRandoCrateDL "__OTR__objects/object_kibako2/gLargeRandoCrateDL"
+static const ALIGN_ASSET(2) char gLargeRandoCrateDL[] = dgLargeRandoCrateDL;
+
+#define dgLargeSmallKeyCrateDL "__OTR__objects/object_kibako2/gLargeSmallKeyCrateDL"
+static const ALIGN_ASSET(2) char gLargeSmallKeyCrateDL[] = dgLargeSmallKeyCrateDL;
+
+#define dgLargeTokenCrateDL "__OTR__objects/object_kibako2/gLargeTokenCrateDL"
+static const ALIGN_ASSET(2) char gLargeTokenCrateDL[] = dgLargeTokenCrateDL;
+
+#define dgLargeBossKeyCrateDL "__OTR__objects/object_kibako2/gLargeBossKeyCrateDL"
+static const ALIGN_ASSET(2) char gLargeBossKeyCrateDL[] = dgLargeBossKeyCrateDL;
+
+#define dgLargeFairyCrateDL "__OTR__objects/object_kibako2/gLargeFairyCrateDL"
+static const ALIGN_ASSET(2) char gLargeFairyCrateDL[] = dgLargeFairyCrateDL;
+
+#define dgLargeHeartCrateDL "__OTR__objects/object_kibako2/gLargeHeartCrateDL"
+static const ALIGN_ASSET(2) char gLargeHeartCrateDL[] = dgLargeHeartCrateDL;
+
+#define dgLargeJunkCrateDL "__OTR__objects/object_kibako2/gLargeJunkCrateDL"
+static const ALIGN_ASSET(2) char gLargeJunkCrateDL[] = dgLargeJunkCrateDL;
+
+#define dgSmallMajorCrateDL "__OTR__objects/object_kibako/gSmallMajorCrateDL"
+static const ALIGN_ASSET(2) char gSmallMajorCrateDL[] = dgSmallMajorCrateDL;
+
+#define dgSmallMaskCrateDL "__OTR__objects/object_kibako/gSmallMaskCrateDL"
+static const ALIGN_ASSET(2) char gSmallMaskCrateDL[] = dgSmallMaskCrateDL;
+
+#define dgSmallMinorCrateDL "__OTR__objects/object_kibako/gSmallMinorCrateDL"
+static const ALIGN_ASSET(2) char gSmallMinorCrateDL[] = dgSmallMinorCrateDL;
+
+#define dgSmallRandoCrateDL "__OTR__objects/object_kibako/gSmallRandoCrateDL"
+static const ALIGN_ASSET(2) char gSmallRandoCrateDL[] = dgSmallRandoCrateDL;
+
+#define dgSmallSmallKeyCrateDL "__OTR__objects/object_kibako/gSmallSmallKeyCrateDL"
+static const ALIGN_ASSET(2) char gSmallSmallKeyCrateDL[] = dgSmallSmallKeyCrateDL;
+
+#define dgSmallTokenCrateDL "__OTR__objects/object_kibako/gSmallTokenCrateDL"
+static const ALIGN_ASSET(2) char gSmallTokenCrateDL[] = dgSmallTokenCrateDL;
+
+#define dgSmallBossKeyCrateDL "__OTR__objects/object_kibako/gSmallBossKeyCrateDL"
+static const ALIGN_ASSET(2) char gSmallBossKeyCrateDL[] = dgSmallBossKeyCrateDL;
+
+#define dgSmallFairyCrateDL "__OTR__objects/object_kibako/gSmallFairyCrateDL"
+static const ALIGN_ASSET(2) char gSmallFairyCrateDL[] = dgSmallFairyCrateDL;
+
+#define dgSmallHeartCrateDL "__OTR__objects/object_kibako/gSmallHeartCrateDL"
+static const ALIGN_ASSET(2) char gSmallHeartCrateDL[] = dgSmallHeartCrateDL;
+
+#define dgSmallJunkCrateDL "__OTR__objects/object_kibako/gSmallJunkCrateDL"
+static const ALIGN_ASSET(2) char gSmallJunkCrateDL[] = dgSmallJunkCrateDL;
+
+#define dgBarrelMajorDL "__OTR__objects/object_taru/gBarrelMajorDL"
+static const ALIGN_ASSET(2) char gBarrelMajorDL[] = dgBarrelMajorDL;
+
+#define dgBarrelMaskDL "__OTR__objects/object_taru/gBarrelMaskDL"
+static const ALIGN_ASSET(2) char gBarrelMaskDL[] = dgBarrelMaskDL;
+
+#define dgBarrelMinorDL "__OTR__objects/object_taru/gBarrelMinorDL"
+static const ALIGN_ASSET(2) char gBarrelMinorDL[] = dgBarrelMinorDL;
+
+#define dgBarrelRandoDL "__OTR__objects/object_taru/gBarrelRandoDL"
+static const ALIGN_ASSET(2) char gBarrelRandoDL[] = dgBarrelRandoDL;
+
+#define dgBarrelSmallKeyDL "__OTR__objects/object_taru/gBarrelSmallKeyDL"
+static const ALIGN_ASSET(2) char gBarrelSmallKeyDL[] = dgBarrelSmallKeyDL;
+
+#define dgBarrelTokenDL "__OTR__objects/object_taru/gBarrelTokenDL"
+static const ALIGN_ASSET(2) char gBarrelTokenDL[] = dgBarrelTokenDL;
+
+#define dgBarrelBossKeyDL "__OTR__objects/object_taru/gBarrelBossKeyDL"
+static const ALIGN_ASSET(2) char gBarrelBossKeyDL[] = dgBarrelBossKeyDL;
+
+#define dgBarrelFairyDL "__OTR__objects/object_taru/gBarrelFairyDL"
+static const ALIGN_ASSET(2) char gBarrelFairyDL[] = dgBarrelFairyDL;
+
+#define dgBarrelHeartDL "__OTR__objects/object_taru/gBarrelHeartDL"
+static const ALIGN_ASSET(2) char gBarrelHeartDL[] = dgBarrelHeartDL;
+
+#define dgBarrelJunkDL "__OTR__objects/object_taru/gBarrelJunkDL"
+static const ALIGN_ASSET(2) char gBarrelJunkDL[] = dgBarrelJunkDL;
+
+#define dgRandoBushDL "__OTR__objects/gameplay_field_keep/gFieldBushRandomDL"
+static const ALIGN_ASSET(2) char gRandoBushDL[] = dgRandoBushDL;
+
+#define dgRandoBushXluDL "__OTR__objects/gameplay_field_keep/gFieldBushRandomXluDL"
+static const ALIGN_ASSET(2) char gRandoBushXluDL[] = dgRandoBushXluDL;
+
+#define dgRandoBushMinorDL "__OTR__objects/gameplay_field_keep/gFieldBushMinorDL"
+static const ALIGN_ASSET(2) char gRandoBushMinorDL[] = dgRandoBushMinorDL;
+
+#define dgRandoBushMinorXluDL "__OTR__objects/gameplay_field_keep/gFieldBushMinorXluDL"
+static const ALIGN_ASSET(2) char gRandoBushMinorXluDL[] = dgRandoBushMinorXluDL;
+
+#define dgRandoBushMajorDL "__OTR__objects/gameplay_field_keep/gFieldBushMajorDL"
+static const ALIGN_ASSET(2) char gRandoBushMajorDL[] = dgRandoBushMajorDL;
+
+#define dgRandoBushMajorXluDL "__OTR__objects/gameplay_field_keep/gFieldBushMajorXluDL"
+static const ALIGN_ASSET(2) char gRandoBushMajorXluDL[] = dgRandoBushMajorXluDL;
+
+#define dgRandoBushSmallKeyDL "__OTR__objects/gameplay_field_keep/gFieldBushSmallKeyDL"
+static const ALIGN_ASSET(2) char gRandoBushSmallKeyDL[] = dgRandoBushSmallKeyDL;
+
+#define dgRandoBushSmallKeyXluDL "__OTR__objects/gameplay_field_keep/gFieldBushSmallKeyXluDL"
+static const ALIGN_ASSET(2) char gRandoBushSmallKeyXluDL[] = dgRandoBushSmallKeyXluDL;
+
+#define dgRandoBushBossKeyDL "__OTR__objects/gameplay_field_keep/gFieldBushBossKeyDL"
+static const ALIGN_ASSET(2) char gRandoBushBossKeyDL[] = dgRandoBushBossKeyDL;
+
+#define dgRandoBushBossKeyXluDL "__OTR__objects/gameplay_field_keep/gFieldBushBossKeyXluDL"
+static const ALIGN_ASSET(2) char gRandoBushBossKeyXluDL[] = dgRandoBushBossKeyXluDL;
+
+#define dgRandoBushTokenDL "__OTR__objects/gameplay_field_keep/gFieldBushTokenDL"
+static const ALIGN_ASSET(2) char gRandoBushTokenDL[] = dgRandoBushTokenDL;
+
+#define dgRandoBushTokenXluDL "__OTR__objects/gameplay_field_keep/gFieldBushTokenXluDL"
+static const ALIGN_ASSET(2) char gRandoBushTokenXluDL[] = dgRandoBushTokenXluDL;
+
+#define dgRandoBushMaskDL "__OTR__objects/gameplay_field_keep/gFieldBushMaskDL"
+static const ALIGN_ASSET(2) char gRandoBushMaskDL[] = dgRandoBushMaskDL;
+
+#define dgRandoBushMaskXluDL "__OTR__objects/gameplay_field_keep/gFieldBushMaskXluDL"
+static const ALIGN_ASSET(2) char gRandoBushMaskXluDL[] = dgRandoBushMaskXluDL;
+
+#define dgRandoBushFairyDL "__OTR__objects/gameplay_field_keep/gFieldBushFairyDL"
+static const ALIGN_ASSET(2) char gRandoBushFairyDL[] = dgRandoBushFairyDL;
+
+#define dgRandoBushFairyXluDL "__OTR__objects/gameplay_field_keep/gFieldBushFairyXluDL"
+static const ALIGN_ASSET(2) char gRandoBushFairyXluDL[] = dgRandoBushFairyXluDL;
+
+#define dgRandoBushHeartDL "__OTR__objects/gameplay_field_keep/gFieldBushHeartDL"
+static const ALIGN_ASSET(2) char gRandoBushHeartDL[] = dgRandoBushHeartDL;
+
+#define dgRandoBushHeartXluDL "__OTR__objects/gameplay_field_keep/gFieldBushHeartXluDL"
+static const ALIGN_ASSET(2) char gRandoBushHeartXluDL[] = dgRandoBushHeartXluDL;
+
+#define dgRandoBushJunkDL "__OTR__objects/gameplay_field_keep/gFieldBushJunkDL"
+static const ALIGN_ASSET(2) char gRandoBushJunkDL[] = dgRandoBushJunkDL;
+
+#define dgRandoBushJunkXluDL "__OTR__objects/gameplay_field_keep/gFieldBushJunkXluDL"
+static const ALIGN_ASSET(2) char gRandoBushJunkXluDL[] = dgRandoBushJunkXluDL;
+
+#define dgChestTrackerIcon "__OTR__textures/icons/gChestTrackerIcon"
+static const ALIGN_ASSET(2) char gChestTrackerIcon[] = dgChestTrackerIcon;
+
+#define dgPotTrackerIcon "__OTR__textures/icons/gPotTrackerIcon"
+static const ALIGN_ASSET(2) char gPotTrackerIcon[] = dgPotTrackerIcon;
+
+#define dgCrateTrackerIcon "__OTR__textures/icons/gCrateTrackerIcon"
+static const ALIGN_ASSET(2) char gCrateTrackerIcon[] = dgCrateTrackerIcon;
+
+#define dgBarrelTrackerIcon "__OTR__textures/icons/gBarrelTrackerIcon"
+static const ALIGN_ASSET(2) char gBarrelTrackerIcon[] = dgBarrelTrackerIcon;
+
+#define dgGiFlippersDL "__OTR__objects/object_ability_swim/gGiFlippersDL"
+static const ALIGN_ASSET(2) char gGiFlippersDL[] = dgGiFlippersDL;
+
+#define dgTriforcePiece0DL "__OTR__objects/object_triforce_piece_0/gTriforcePiece0DL"
+static const ALIGN_ASSET(2) char gTriforcePiece0DL[] = dgTriforcePiece0DL;
+
+#define dgTriforcePiece1DL "__OTR__objects/object_triforce_piece_1/gTriforcePiece1DL"
+static const ALIGN_ASSET(2) char gTriforcePiece1DL[] = dgTriforcePiece1DL;
+
+#define dgTriforcePiece2DL "__OTR__objects/object_triforce_piece_2/gTriforcePiece2DL"
+static const ALIGN_ASSET(2) char gTriforcePiece2DL[] = dgTriforcePiece2DL;
+
+#define dgTriforcePieceCompletedDL "__OTR__objects/object_triforce_completed/gTriforcePieceCompletedDL"
+static const ALIGN_ASSET(2) char gTriforcePieceCompletedDL[] = dgTriforcePieceCompletedDL;
+
+#define dgTrapDL "__OTR__objects/object_trap/gTrapDL"
+static const ALIGN_ASSET(2) char gTrapDL[] = dgTrapDL;
+
+#define dgOcarinaAButtonDL "__OTR__objects/object_ocarina_a_button/gOcarinaAButtonDL"
+static const ALIGN_ASSET(2) char gOcarinaAButtonDL[] = dgOcarinaAButtonDL;
+
+#define dgOcarinaCDownButtonDL "__OTR__objects/object_ocarina_c_down_button/gOcarinaCDownButtonDL"
+static const ALIGN_ASSET(2) char gOcarinaCDownButtonDL[] = dgOcarinaCDownButtonDL;
+
+#define dgOcarinaCLeftButtonDL "__OTR__objects/object_ocarina_c_left_button/gOcarinaCLeftButtonDL"
+static const ALIGN_ASSET(2) char gOcarinaCLeftButtonDL[] = dgOcarinaCLeftButtonDL;
+
+#define dgOcarinaCRightButtonDL "__OTR__objects/object_ocarina_c_right_button/gOcarinaCRightButtonDL"
+static const ALIGN_ASSET(2) char gOcarinaCRightButtonDL[] = dgOcarinaCRightButtonDL;
+
+#define dgOcarinaCUpButtonDL "__OTR__objects/object_ocarina_c_up_button/gOcarinaCUpButtonDL"
+static const ALIGN_ASSET(2) char gOcarinaCUpButtonDL[] = dgOcarinaCUpButtonDL;

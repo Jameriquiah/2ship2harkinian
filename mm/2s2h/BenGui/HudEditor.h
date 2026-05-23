@@ -1,11 +1,9 @@
 #pragma once
 
-#include <libultraship/libultraship.h>
-
 #ifdef __cplusplus
-
+#include <ship/window/gui/GuiWindow.h>
 #include "UIWidgets.hpp"
-#include <unordered_map>
+#include "CosmeticEditor.h"
 
 class HudEditorWindow : public Ship::GuiWindow {
   public:
@@ -46,6 +44,7 @@ typedef enum {
 } HudEditorElementID;
 
 typedef enum {
+    HUD_EDITOR_ELEMENT_MODE_NONE = -1,
     HUD_EDITOR_ELEMENT_MODE_VANILLA,
     HUD_EDITOR_ELEMENT_MODE_HIDDEN,
     HUD_EDITOR_ELEMENT_MODE_MOVABLE_43,
@@ -53,6 +52,7 @@ typedef enum {
     HUD_EDITOR_ELEMENT_MODE_MOVABLE_RIGHT,
 } HudEditorElementMode;
 
+void HudEditor_OverrideNextElementMode(HudEditorElementMode mode);
 void HudEditor_SetActiveElement(HudEditorElementID id);
 bool HudEditor_ShouldOverrideDraw();
 bool HudEditor_IsActiveElementHidden();
@@ -67,6 +67,8 @@ void HudEditor_ModifyDrawValuesFromBase(s16 baseX, s16 baseY, s16* rectLeft, s16
                                         s16* rectHeight, s16* dsdx, s16* dtdy);
 void HudEditor_ModifyDrawValues(s16* rectLeft, s16* rectTop, s16* rectWidth, s16* rectHeight, s16* dsdx, s16* dtdy);
 
+#define HUD_EDITOR_NO_COSMETIC -1
+
 typedef struct {
     HudEditorElementID id;
     const char* name;
@@ -79,15 +81,14 @@ typedef struct {
     const char* xCvar;
     const char* yCvar;
     const char* scaleCvar;
-    const char* colorCvar;
     const char* modeCvar;
+    int32_t cosmeticElementId;
 } HudEditorElement;
 
-#define HUD_EDITOR_ELEMENT(id, name, cvar, defaultX, defaultY, defaultR, defaultG, defaultB, defaultA)          \
-    {                                                                                                           \
-        id, name, defaultX, defaultY, defaultR, defaultG, defaultB, defaultA, "gHudEditor." cvar ".Position.X", \
-            "gHudEditor." cvar ".Position.Y", "gHudEditor." cvar ".Scale", "gHudEditor." cvar ".Color.Value",   \
-            "gHudEditor." cvar ".Mode"                                                                          \
+#define HUD_EDITOR_ELEMENT(id, name, cvar, defaultX, defaultY, defaultR, defaultG, defaultB, defaultA, cosmeticId) \
+    {                                                                                                              \
+        id, name, defaultX, defaultY, defaultR, defaultG, defaultB, defaultA, "gHudEditor." cvar ".Position.X",    \
+            "gHudEditor." cvar ".Position.Y", "gHudEditor." cvar ".Scale", "gHudEditor." cvar ".Mode", cosmeticId  \
     }
 
 extern HudEditorElementID hudEditorActiveElement;

@@ -6,10 +6,9 @@
 
 #include "z_dm_char05.h"
 #include "objects/object_dmask/object_dmask.h"
+#include "2s2h/GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_10 | ACTOR_FLAG_20)
-
-#define THIS ((DmChar05*)thisx)
+#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
 void DmChar05_Init(Actor* thisx, PlayState* play);
 void DmChar05_Destroy(Actor* thisx, PlayState* play);
@@ -35,7 +34,7 @@ void func_80AADF54(PlayState* play, DmChar05* this);
 void func_80AAE030(PlayState* play, DmChar05* this);
 void func_80AAE114(PlayState* play, DmChar05* this);
 
-ActorInit Dm_Char05_InitVars = {
+ActorProfile Dm_Char05_Profile = {
     /**/ ACTOR_DM_CHAR05,
     /**/ ACTORCAT_ITEMACTION,
     /**/ FLAGS,
@@ -81,7 +80,7 @@ void DmChar05_ChangeAnim(SkelAnime* skelAnime, AnimationInfo* animInfo, u16 anim
 }
 
 void func_80AAC63C(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     ActorShape_Init(&this->actor.shape, 0.0f, ActorShadow_DrawCircle, 24.0f);
     SkelAnime_Init(play, &this->skelAnime, &object_dmask_Skel_010B0, NULL, NULL, NULL, 0);
@@ -94,7 +93,7 @@ void func_80AAC63C(Actor* thisx, PlayState* play) {
 }
 
 void func_80AAC6E4(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     ActorShape_Init(&this->actor.shape, 0.0f, ActorShadow_DrawCircle, 24.0f);
     SkelAnime_Init(play, &this->skelAnime, &object_dmask_Skel_042B0, NULL, NULL, NULL, 0);
@@ -103,7 +102,7 @@ void func_80AAC6E4(Actor* thisx, PlayState* play) {
 }
 
 void func_80AAC770(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     ActorShape_Init(&this->actor.shape, 0.0f, ActorShadow_DrawCircle, 24.0f);
     SkelAnime_InitFlex(play, &this->skelAnime, &object_dmask_Skel_001D0, NULL, NULL, NULL, 0);
@@ -112,7 +111,7 @@ void func_80AAC770(Actor* thisx, PlayState* play) {
 }
 
 void func_80AAC7FC(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     ActorShape_Init(&this->actor.shape, 0.0f, ActorShadow_DrawCircle, 24.0f);
     SkelAnime_Init(play, &this->skelAnime, &object_dmask_Skel_013D0, NULL, NULL, NULL, 0);
@@ -121,13 +120,13 @@ void func_80AAC7FC(Actor* thisx, PlayState* play) {
 }
 
 void func_80AAC888(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     this->actionFunc = func_80AACA98;
 }
 
 void DmChar05_Init(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     this->animIndex = DMCHAR05_ANIM_0;
     this->unk_18E = 0;
@@ -214,7 +213,9 @@ void func_80AACAE4(DmChar05* this, PlayState* play) {
 
         if (play->csCtx.actorCues[cueChannel]->id == 2) {
             if (play->csCtx.curFrame == play->csCtx.actorCues[cueChannel]->startFrame) {
-                Item_Give(play, ITEM_MASK_COUPLE);
+                if (GameInteractor_Should(VB_GIVE_ITEM_FROM_DMCHAR05, true, ITEM_MASK_COUPLE)) {
+                    Item_Give(play, ITEM_MASK_COUPLE);
+                }
             }
             this->unk_18E = 1;
             this->unk_190.x = play->csCtx.actorCues[cueChannel]->startPos.x;
@@ -341,7 +342,9 @@ void func_80AACF04(DmChar05* this, PlayState* play) {
                             break;
 
                         case 4:
-                            Item_Give(play, ITEM_MASK_GORON);
+                            if (GameInteractor_Should(VB_GIVE_ITEM_FROM_DMCHAR05, true, ITEM_MASK_GORON)) {
+                                Item_Give(play, ITEM_MASK_GORON);
+                            }
                             changeAnim = false;
                             this->actionFunc = func_80AAC990;
                             break;
@@ -385,7 +388,9 @@ void func_80AACF04(DmChar05* this, PlayState* play) {
                             break;
 
                         case 4:
-                            Item_Give(play, ITEM_MASK_ZORA);
+                            if (GameInteractor_Should(VB_GIVE_ITEM_FROM_DMCHAR05, true, ITEM_MASK_ZORA)) {
+                                Item_Give(play, ITEM_MASK_ZORA);
+                            }
                             changeAnim = false;
                             this->actionFunc = func_80AACD1C;
                             break;
@@ -428,7 +433,9 @@ void func_80AACF04(DmChar05* this, PlayState* play) {
                             break;
 
                         case 4:
-                            Item_Give(play, ITEM_MASK_GIBDO);
+                            if (GameInteractor_Should(VB_GIVE_ITEM_FROM_DMCHAR05, true, ITEM_MASK_GIBDO)) {
+                                Item_Give(play, ITEM_MASK_GIBDO);
+                            }
                             changeAnim = false;
                             this->actionFunc = func_80AACE10;
                             break;
@@ -575,7 +582,7 @@ void func_80AAD4A8(DmChar05* this, PlayState* play) {
 }
 
 void DmChar05_Update(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     func_80AACF04(this, play);
     if (Cutscene_IsCueInChannel(play, CS_CMD_ACTOR_CUE_109)) {
@@ -613,7 +620,7 @@ void DmChar05_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* r
 }
 
 void func_80AAD998(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
     s32 pad[2];
 
     if (this->unk_18E == 0) {
@@ -635,7 +642,7 @@ void func_80AAD998(Actor* thisx, PlayState* play) {
 }
 
 void func_80AADA90(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     if (this->unk_18E == 0) {
         if (Cutscene_IsCueInChannel(play, CS_CMD_ACTOR_CUE_473) &&
@@ -650,7 +657,7 @@ void func_80AADA90(Actor* thisx, PlayState* play) {
 }
 
 void func_80AADB4C(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     if (this->unk_18E == 0) {
         if (Cutscene_IsCueInChannel(play, CS_CMD_ACTOR_CUE_518) &&
@@ -666,7 +673,7 @@ void func_80AADB4C(Actor* thisx, PlayState* play) {
 
 void func_80AADC00(Actor* thisx, PlayState* play) {
     s32 pad;
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
     s32 cueChannel;
 
     if (Cutscene_IsCueInChannel(play, CS_CMD_ACTOR_CUE_559)) {
@@ -686,7 +693,7 @@ void func_80AADC00(Actor* thisx, PlayState* play) {
 }
 
 void DmChar05_Draw(Actor* thisx, PlayState* play) {
-    DmChar05* this = THIS;
+    DmChar05* this = (DmChar05*)thisx;
 
     switch (DMCHAR05_GET(&this->actor)) {
         case DMCHAR05_0:
@@ -727,7 +734,9 @@ void func_80AADD9C(PlayState* play, DmChar05* this) {
         Matrix_Translate(this->unk_190.x, this->unk_190.y, this->unk_190.z, MTXMODE_NEW);
         Matrix_RotateZYX(0, play->gameplayFrames * 1000, 0, MTXMODE_APPLY);
         Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
-        GetItem_Draw(play, GID_MASK_GORON);
+        if (GameInteractor_Should(VB_DRAW_ITEM_FROM_DMCHAR05, true, GID_MASK_GORON, this)) {
+            GetItem_Draw(play, GID_MASK_GORON);
+        }
     }
 
     if (Object_IsLoaded(&play->objectCtx, this->objectSlot)) {
@@ -740,7 +749,9 @@ void func_80AADE78(PlayState* play, DmChar05* this) {
         Matrix_Translate(this->unk_190.x, this->unk_190.y, this->unk_190.z, MTXMODE_NEW);
         Matrix_RotateZYX(0, play->gameplayFrames * 1000, 0, MTXMODE_APPLY);
         Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
-        GetItem_Draw(play, GID_MASK_ZORA);
+        if (GameInteractor_Should(VB_DRAW_ITEM_FROM_DMCHAR05, true, GID_MASK_ZORA, this)) {
+            GetItem_Draw(play, GID_MASK_ZORA);
+        }
     }
 
     if (Object_IsLoaded(&play->objectCtx, this->objectSlot)) {
@@ -753,7 +764,9 @@ void func_80AADF54(PlayState* play, DmChar05* this) {
         Matrix_Translate(this->unk_190.x, this->unk_190.y, this->unk_190.z, MTXMODE_NEW);
         Matrix_RotateZYX(0, play->gameplayFrames * 1000, 0, MTXMODE_APPLY);
         Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
-        GetItem_Draw(play, GID_MASK_GIBDO);
+        if (GameInteractor_Should(VB_DRAW_ITEM_FROM_DMCHAR05, true, GID_MASK_GIBDO, this)) {
+            GetItem_Draw(play, GID_MASK_GIBDO);
+        }
     }
 
     if (Object_IsLoaded(&play->objectCtx, this->objectSlot)) {
@@ -767,7 +780,9 @@ void func_80AAE030(PlayState* play, DmChar05* this) {
             Matrix_Translate(this->unk_190.x, this->unk_190.y, this->unk_190.z, MTXMODE_NEW);
             Matrix_RotateZYX(0, play->gameplayFrames * 1000, 0, MTXMODE_APPLY);
             Matrix_Scale(0.2f, 0.2f, 0.2f, MTXMODE_APPLY);
-            GetItem_Draw(play, GID_MASK_COUPLE);
+            if (GameInteractor_Should(VB_DRAW_ITEM_FROM_DMCHAR05, true, GID_MASK_COUPLE, this)) {
+                GetItem_Draw(play, GID_MASK_COUPLE);
+            }
         }
 
         if (Object_IsLoaded(&play->objectCtx, this->objectSlot)) {

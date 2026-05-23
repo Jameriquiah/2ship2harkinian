@@ -7,10 +7,9 @@
 #include "z_obj_oshihiki.h"
 #include "overlays/actors/ovl_Obj_Switch/z_obj_switch.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
+#include "2s2h/GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_10)
-
-#define THIS ((ObjOshihiki*)thisx)
+#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
 void ObjOshihiki_Init(Actor* thisx, PlayState* play);
 void ObjOshihiki_Destroy(Actor* thisx, PlayState* play);
@@ -25,7 +24,7 @@ void ObjOshihiki_Push(ObjOshihiki* this, PlayState* play);
 void ObjOshihiki_SetupFall(ObjOshihiki* this, PlayState* play);
 void ObjOshihiki_Fall(ObjOshihiki* this, PlayState* play);
 
-ActorInit Obj_Oshihiki_InitVars = {
+ActorProfile Obj_Oshihiki_Profile = {
     /**/ ACTOR_OBJ_OSHIHIKI,
     /**/ ACTORCAT_PROP,
     /**/ FLAGS,
@@ -46,9 +45,9 @@ static Color_RGB8 sColors[] = {
 };
 
 static InitChainEntry sInitChain[] = {
-    ICHAIN_F32(uncullZoneForward, 4000, ICHAIN_CONTINUE),
-    ICHAIN_F32(uncullZoneScale, 500, ICHAIN_CONTINUE),
-    ICHAIN_F32(uncullZoneDownward, 500, ICHAIN_STOP),
+    ICHAIN_F32(cullingVolumeDistance, 4000, ICHAIN_CONTINUE),
+    ICHAIN_F32(cullingVolumeScale, 500, ICHAIN_CONTINUE),
+    ICHAIN_F32(cullingVolumeDownward, 500, ICHAIN_STOP),
 };
 
 // The vertices and center of the bottom face
@@ -194,7 +193,7 @@ void ObjOshihiki_SetColor(ObjOshihiki* this, PlayState* play) {
 }
 
 void ObjOshihiki_Init(Actor* thisx, PlayState* play) {
-    ObjOshihiki* this = THIS;
+    ObjOshihiki* this = (ObjOshihiki*)thisx;
 
     DynaPolyActor_Init(&this->dyna, DYNA_TRANSFORM_POS);
 
@@ -237,7 +236,7 @@ void ObjOshihiki_Init(Actor* thisx, PlayState* play) {
 }
 
 void ObjOshihiki_Destroy(Actor* thisx, PlayState* play) {
-    ObjOshihiki* this = THIS;
+    ObjOshihiki* this = (ObjOshihiki*)thisx;
 
     DynaPoly_DeleteBgActor(play, &play->colCtx.dyna, this->dyna.bgId);
 }
@@ -446,7 +445,7 @@ void ObjOshihiki_OnActor(ObjOshihiki* this, PlayState* play) {
             dyna = DynaPoly_GetActor(&play->colCtx, this->floorBgIds[this->highestFloor]);
             if (dyna != NULL) {
                 DynaPolyActor_SetActorOnTop(dyna);
-                DynaPolyActor_SetActorOnSwitch(dyna);
+                DynaPolyActor_SetSwitchPressed(dyna);
                 if ((this->timer <= 0) && (fabsf(this->dyna.pushForce) > 0.001f) &&
                     ObjOshihiki_StrongEnough(this, play) && ObjOshihiki_NoSwitchPress(this, dyna, play) &&
                     !ObjOshihiki_CheckWall(play, this->dyna.yRotation, this->dyna.pushForce, this)) {
@@ -464,7 +463,7 @@ void ObjOshihiki_OnActor(ObjOshihiki* this, PlayState* play) {
         dyna = DynaPoly_GetActor(&play->colCtx, this->floorBgIds[this->highestFloor]);
         if ((dyna != NULL) && (dyna->transformFlags & DYNA_TRANSFORM_POS)) {
             DynaPolyActor_SetActorOnTop(dyna);
-            DynaPolyActor_SetActorOnSwitch(dyna);
+            DynaPolyActor_SetSwitchPressed(dyna);
             this->dyna.actor.world.pos.y = this->dyna.actor.floorHeight;
         } else {
             ObjOshihiki_SetupFall(this, play);
@@ -480,7 +479,9 @@ void ObjOshihiki_OnActor(ObjOshihiki* this, PlayState* play) {
 void ObjOshihiki_SetupPush(ObjOshihiki* this, PlayState* play) {
     this->stateFlags |= PUSHBLOCK_SETUP_PUSH;
     this->dyna.actor.gravity = 0.0f;
-    this->pushSpeed = 2.0f;
+    if (GameInteractor_Should(VB_PUSH_BLOCK_SET_SPEED, true, this)) {
+        this->pushSpeed = 2.0f;
+    }
     this->actionFunc = ObjOshihiki_Push;
 }
 
@@ -518,7 +519,9 @@ void ObjOshihiki_Push(ObjOshihiki* this, PlayState* play) {
         this->dyna.pushForce = 0.0f;
         this->pushDist = 0.0f;
         this->pushSpeed = 0.0f;
-        this->timer = 10;
+        if (GameInteractor_Should(VB_PUSH_BLOCK_SET_TIMER, true, this)) {
+            this->timer = 10;
+        }
 
         if (this->floorBgIds[this->highestFloor] == BGCHECK_SCENE) {
             ObjOshihiki_SetupOnScene(this, play);
@@ -567,7 +570,7 @@ void ObjOshihiki_Fall(ObjOshihiki* this, PlayState* play) {
 }
 
 void ObjOshihiki_Update(Actor* thisx, PlayState* play) {
-    ObjOshihiki* this = THIS;
+    ObjOshihiki* this = (ObjOshihiki*)thisx;
 
     this->stateFlags &=
         ~(PUSHBLOCK_SETUP_FALL | PUSHBLOCK_FALL | PUSHBLOCK_SETUP_PUSH | PUSHBLOCK_PUSH | PUSHBLOCK_SETUP_ON_ACTOR |
@@ -588,7 +591,7 @@ void ObjOshihiki_Update(Actor* thisx, PlayState* play) {
 
 void ObjOshihiki_Draw(Actor* thisx, PlayState* play) {
     s32 pad;
-    ObjOshihiki* this = THIS;
+    ObjOshihiki* this = (ObjOshihiki*)thisx;
 
     OPEN_DISPS(play->state.gfxCtx);
 
@@ -600,7 +603,7 @@ void ObjOshihiki_Draw(Actor* thisx, PlayState* play) {
     Gfx_SetupDL25_Opa(play->state.gfxCtx);
     AnimatedMat_DrawStep(play, this->texture, this->textureStep);
 
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
     gDPSetPrimColor(POLY_OPA_DISP++, 0xFF, 0xFF, this->color.r, this->color.g, this->color.b, 255);
     gSPDisplayList(POLY_OPA_DISP++, gameplay_dangeon_keep_DL_0182A8);
 

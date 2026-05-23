@@ -1,11 +1,13 @@
-#include <libultraship/libultraship.h>
 #include <fstream>
 #include <filesystem>
 #include <nlohmann/json.hpp>
 
 #include "2s2h/SaveManager/SaveManager.h"
-#include "utils/binarytools/BinaryReader.h"
+#include <ship/utils/binarytools/BinaryReader.h>
 #include <string>
+#include <spdlog/spdlog.h>
+#include <ship/Context.h>
+#include <ship/window/Window.h>
 
 extern "C" {
 #include "z64math.h"
@@ -638,7 +640,7 @@ void BinarySaveConverter_ReadBufferToSave(Legacy_SaveContext* saveContext, std::
     saveContext->save.saveInfo.checksum = 1;
 }
 
-bool BinarySaveConverter_HandleFileDropped(std::string filePath) {
+bool BinarySaveConverter_HandleFileDropped(char* filePath) {
     try {
         std::ifstream fileStream(filePath, std::ios::binary | std::ios::ate);
 
@@ -722,12 +724,15 @@ bool BinarySaveConverter_HandleFileDropped(std::string filePath) {
 
         SaveManager_WriteSaveFile(fileName, j);
 
+        // Reset the file select state to reload the save metadata
         if (gFileSelectState != NULL) {
-            func_801457CC(&gFileSelectState->state, &gFileSelectState->sramCtx);
-            if (gFileSelectState->menuMode == FS_MENU_MODE_CONFIG && gFileSelectState->configMode == CM_MAIN_MENU) {
-                gFileSelectState->configMode = CM_FADE_IN_START;
-            }
+            STOP_GAMESTATE(&gFileSelectState->state);
+            SET_NEXT_GAMESTATE(&gFileSelectState->state, FileSelect_Init, sizeof(FileSelectState));
         }
+
+        SPDLOG_INFO("Successfully imported save into slot {}", saveSlot);
+        auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+        gui->GetGameOverlay()->TextDrawNotification(30.0f, true, "Successfully imported save into slot %d", saveSlot);
 
         return true;
     } catch (std::exception& e) {

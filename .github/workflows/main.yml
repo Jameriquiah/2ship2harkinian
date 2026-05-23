@@ -6,134 +6,44 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  # build-linux-self-hosted:
-  #   strategy:
-  #     fail-fast: true
-  #   runs-on: [self-hosted, Linux]
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #     with:
-  #       submodules: true
-  #   - name: Install dependencies
-  #     run: |
-  #       sudo apt update
-  #       sudo apt install -y $(cat .github/workflows/apt-deps.txt) file
-  #   - name: Install latest SDL
-  #     run: |
-  #       export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-  #       if [ ! -d "SDL2-2.26.1" ]; then
-  #         wget https://www.libsdl.org/release/SDL2-2.26.1.tar.gz
-  #         tar -xzf SDL2-2.26.1.tar.gz
-  #       fi
-  #       cd SDL2-2.26.1
-  #       ./configure
-  #       make -j
-  #       sudo make install
-  #       sudo cp -av /usr/local/lib/libSDL* /lib/x86_64-linux-gnu/
-  #   - name: Build 2Ship
-  #     run: |
-  #       export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-  #       cmake --no-warn-unused-cli -H. -Bbuild-cmake -GNinja -DCMAKE_BUILD_TYPE:STRING=Release
-  #       cmake --build build-cmake --config Release --target Generate2ShipOtr -j
-  #       cmake --build build-cmake --config Release -j
-
-  #       (cd build-cmake && cpack -G External)
-  #       mv README.md readme.txt
-  #       mv build-cmake/*.appimage 2ship.appimage
-  #     env:
-  #       CC: gcc
-  #       CXX: g++
-  #   # - name: Upload build
-  #   #   uses: actions/upload-artifact@v4
-  #   #   with:
-  #   #     name: 2ship-linux
-  #   #     path: |
-  #   #       2ship.appimage
-  #   #       readme.txt
-
-  # build-windows-self-hosted:
-  #   runs-on: [self-hosted, Windows]
-  #   steps:
-  #   - name: Install dependencies
-  #     run: |
-  #       choco install ninja -y
-  #       choco install gzip -y
-  #       Add-Content $env:GITHUB_PATH $env:ChocolateyInstall
-  #   - uses: actions/checkout@v4
-  #     with:
-  #       submodules: true
-  #   - name: Configure Developer Command Prompt
-  #     uses: ilammy/msvc-dev-cmd@v1
-  #   - name: Copy Rom
-  #     run: Copy-Item -Path C:\baserom_mm.z64 -Destination ${{github.workspace}}/OTRExporter/baserom.z64
-  #   - name: Build 2Ship
-  #     env:
-  #       VCPKG_ROOT: ${{github.workspace}}/vcpkg
-  #     run: |
-  #       set $env:PATH="$env:USERPROFILE/.cargo/bin;$env:PATH"
-  #       cmake -S . -B build-windows -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_BUILD_TYPE:STRING=Release
-  #       cmake --build build-windows --config Release --target Generate2ShipOtr --parallel 10
-  #       cmake --build build-windows --config Release --parallel 10
-
-  #       (cd build-windows && cpack)
-  #       cd ..
-  #       mv _packages/*.zip _packages/2ship-windows.zip
-  #   # Temporarily replaced with an upload to R2 until we go public
-  #   # - name: Unzip package
-  #   #   run: Expand-Archive -Path 2ship-windows.zip -DestinationPath 2ship-windows
-  #   # - name: Upload build
-  #   #   if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
-  #   #   uses: actions/upload-artifact@v4
-  #   #   with:
-  #   #     name: 2ship-windows
-  #   #     path: 2ship-windows
-  #   - name: Upload build
-  #     if: ${{ startsWith(github.ref, 'refs/heads/develop') }}
-  #     uses: ryand56/r2-upload-action@latest
-  #     with:
-  #       r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-  #       r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-  #       r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-  #       r2-bucket: ${{ secrets.R2_BUCKET }}
-  #       source-dir: _packages
-  #       destination-dir: ./
 
   generate-2ship-otr:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
+    - name: Git Checkout
+      uses: actions/checkout@v4
       with:
         submodules: true
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.13
+    - name: Configure ccache
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
+        save: ${{ github.ref_name == github.event.repository.default_branch }}
         key: ${{ runner.os }}-otr-ccache-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-otr-ccache-${{ github.ref }}
-          ${{ runner.os }}-otr-ccache-
+          ${{ runner.os }}-otr-ccache
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y $(cat .github/workflows/apt-deps.txt) libzip-dev zipcmp zipmerge ziptool
-    - name: Cache build folders
-      uses: actions/cache@v4
+    - name: Restore Cached deps folder
+      uses: actions/cache/restore@v4
       with:
-        key: ${{ runner.os }}-otr-build-${{ github.ref }}-${{ github.sha }}
+        key: ${{ runner.os }}-deps-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-otr-build-${{ github.ref }}
-          ${{ runner.os }}-otr-build-
-        path: |
-          build-cmake
-          SDL2-2.28.5
-          tinyxml2-10.0.0
+          ${{ runner.os }}-deps-${{ github.ref }}-
+          ${{ runner.os }}-deps-
+        path: deps
+    - name: Create deps folder
+      run: mkdir -p deps
     - name: Install latest SDL
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-        if [ ! -d "SDL2-2.28.5" ]; then
-          wget https://github.com/libsdl-org/SDL/releases/download/release-2.28.5/SDL2-2.28.5.tar.gz
-          tar -xzf SDL2-2.28.5.tar.gz
+        if [ ! -d "deps/SDL2-2.30.3" ]; then
+          wget https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-2.30.3.tar.gz
+          tar -xzf SDL2-2.30.3.tar.gz -C deps
         fi
-        cd SDL2-2.28.5
+        cd deps/SDL2-2.30.3
         ./configure --enable-hidapi-libusb
         make -j 10
         sudo make install
@@ -142,11 +52,11 @@ jobs:
       run: |
         sudo apt-get remove libtinyxml2-dev
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-        if [ ! -d "tinyxml2-10.0.0" ]; then
+        if [ ! -d "deps/tinyxml2-10.0.0" ]; then
           wget https://github.com/leethomason/tinyxml2/archive/refs/tags/10.0.0.tar.gz
-          tar -xzf 10.0.0.tar.gz
+          tar -xzf 10.0.0.tar.gz -C deps
         fi
-        cd tinyxml2-10.0.0
+        cd deps/tinyxml2-10.0.0
         mkdir -p build
         cd build
         cmake ..
@@ -157,41 +67,45 @@ jobs:
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         cmake --no-warn-unused-cli -H. -Bbuild-cmake -GNinja -DCMAKE_BUILD_TYPE:STRING=Release
         cmake --build build-cmake --config Release --target Generate2ShipOtr -j3
-    - uses: actions/upload-artifact@v4
+    - name: Upload 2ship.o2r
+      uses: actions/upload-artifact@v4
       with:
         name: 2ship.o2r
         path: 2ship.o2r
-        retention-days: 1
+        retention-days: 3
 
   build-macos:
     needs: generate-2ship-otr
     runs-on: macos-14
     steps:
-    - uses: actions/checkout@v4
+    - name: Git Checkout
+      uses: actions/checkout@v4
       with:
         submodules: true
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.13
+    - name: Configure ccache
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
         create-symlink: true
+        save: ${{ github.ref_name == github.event.repository.default_branch }}
         key: ${{ runner.os }}-14-ccache-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-14-ccache-${{ github.ref }}
-          ${{ runner.os }}-14-ccache-
+          ${{ runner.os }}-14-ccache
     # Needed to apply sudo for macports cache restore
     - name: Install gtar wrapper
       run: |
         sudo mv /opt/homebrew/bin/gtar /opt/homebrew/bin/gtar.orig
         sudo cp .github/workflows/gtar /opt/homebrew/bin/gtar
         sudo chmod +x /opt/homebrew/bin/gtar
-    - name: Cache MacPorts
-      id: cache-macports
-      uses: actions/cache@v4
+    - name: Restore Cached MacPorts
+      id: restore-cache-macports
+      uses: actions/cache/restore@v4
       with:
-        path: /opt/local/
-        key: ${{ runner.os }}-14-macports-${{ hashFiles('.github/workflows/macports-deps.txt') }}
+        key: ${{ runner.os }}-14-macports-${{ hashFiles('.github/workflows/macports-deps.txt') }}-${{ github.sha }}
         restore-keys: |
+          ${{ runner.os }}-14-macports-${{ hashFiles('.github/workflows/macports-deps.txt') }}-
           ${{ runner.os }}-14-macports-
+        path: /opt/local/
     # Updated PATH applies to the next step and onwards
     - name: Install MacPorts (if necessary)
       run: |
@@ -215,7 +129,7 @@ jobs:
         path: build-cmake/mm
     - name: Build 2Ship
       run: |
-        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        export PATH="/usr/lib/ccache:/opt/homebrew/opt/ccache/libexec:/usr/local/opt/ccache/libexec:$PATH"
         cmake --no-warn-unused-cli -H. -Bbuild-cmake -GNinja -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
         cmake --build build-cmake --config Release --parallel 10
         (cd build-cmake && cpack)
@@ -229,44 +143,52 @@ jobs:
         path: |
           2Ship.dmg
           readme.txt
+    - name: Save Cache MacPorts
+      if: ${{ github.ref_name == github.event.repository.default_branch }}
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ steps.restore-cache-macports.outputs.cache-primary-key }}
+        path: /opt/local/
 
   build-linux:
     needs: generate-2ship-otr
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
+    - name: Git Checkout
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y $(cat .github/workflows/apt-deps.txt)
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.13
+    - name: Configure ccache
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: linux-ccache-${{ github.ref }}-${{ github.sha }}
+        save: ${{ github.ref_name == github.event.repository.default_branch }}
+        key: ${{ runner.os }}-ccache-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
-          linux-ccache-${{ github.ref }}
-          linux-ccache-
-    - name: Cache build folders
-      uses: actions/cache@v4
+          ${{ runner.os }}-ccache-${{ github.ref }}
+          ${{ runner.os }}-ccache
+    - name: Restore Cached deps folder
+      id: restore-cache-deps
+      uses: actions/cache/restore@v4
       with:
-        key: linux-build-${{ github.ref }}-${{ github.sha }}
+        key: ${{ runner.os }}-deps-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
-          linux-build-${{ github.ref }}
-          linux-build-
-        path: |
-          SDL2-2.30.3
-          tinyxml2-10.0.0
-          libzip-1.10.1
+          ${{ runner.os }}-deps-${{ github.ref }}-
+          ${{ runner.os }}-deps-
+        path: deps
+    - name: Create deps folder
+      run: mkdir -p deps
     - name: Install latest SDL
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-        if [ ! -d "SDL2-2.30.3" ]; then
+        if [ ! -d "deps/SDL2-2.30.3" ]; then
           wget https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-2.30.3.tar.gz
-          tar -xzf SDL2-2.30.3.tar.gz
+          tar -xzf SDL2-2.30.3.tar.gz -C deps
         fi
-        cd SDL2-2.30.3
+        cd deps/SDL2-2.30.3
         ./configure --enable-hidapi-libusb
         make -j 10
         sudo make install
@@ -275,11 +197,11 @@ jobs:
       run: |
         sudo apt-get remove libtinyxml2-dev
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-        if [ ! -d "tinyxml2-10.0.0" ]; then
+        if [ ! -d "deps/tinyxml2-10.0.0" ]; then
           wget https://github.com/leethomason/tinyxml2/archive/refs/tags/10.0.0.tar.gz
-          tar -xzf 10.0.0.tar.gz
+          tar -xzf 10.0.0.tar.gz -C deps
         fi
-        cd tinyxml2-10.0.0
+        cd deps/tinyxml2-10.0.0
         mkdir -p build
         cd build
         cmake ..
@@ -288,11 +210,11 @@ jobs:
     - name: Install libzip without crypto
       run: |
         export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-        if [ ! -d "libzip-1.10.1" ]; then
+        if [ ! -d "deps/libzip-1.10.1" ]; then
           wget https://github.com/nih-at/libzip/releases/download/v1.10.1/libzip-1.10.1.tar.gz
-          tar -xzf libzip-1.10.1.tar.gz
+          tar -xzf libzip-1.10.1.tar.gz -C deps
         fi
-        cd libzip-1.10.1
+        cd deps/libzip-1.10.1
         mkdir -p build
         cd build
         cmake .. -DENABLE_COMMONCRYPTO=OFF -DENABLE_GNUTLS=OFF -DENABLE_MBEDTLS=OFF -DENABLE_OPENSSL=OFF
@@ -323,6 +245,12 @@ jobs:
         path: |
           2ship.appimage
           readme.txt
+    - name: Save Cache deps folder
+      if: ${{ github.ref_name == github.event.repository.default_branch }}
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ steps.restore-cache-deps.outputs.cache-primary-key }}
+        path: deps
 
   build-windows:
     needs: generate-2ship-otr
@@ -332,29 +260,30 @@ jobs:
       run: |
         choco install ninja -y
         Remove-Item -Path "C:\ProgramData\Chocolatey\bin\ccache.exe" -Force -ErrorAction SilentlyContinue
-    - uses: actions/checkout@v4
+    - name: Git Checkout
+      uses: actions/checkout@v4
       with:
         submodules: true
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2.13
+    - name: Configure sccache
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
         variant: sccache
-        max-size: "1G"
-        key: ${{ runner.os }}-ccache1-${{ github.ref }}-${{ github.sha }}
+        max-size: "2G"
+        evict-old-files: job
+        save: ${{ github.ref_name == github.event.repository.default_branch }}
+        key: ${{ runner.os }}-ccache-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-ccache1-${{ github.ref }}
-          ${{ runner.os }}-ccache1-
-    - name: Cache build folder
-      uses: actions/cache@v4
+          ${{ runner.os }}-ccache-${{ github.ref }}
+          ${{ runner.os }}-ccache
+    - name: Restore Cached VCPKG folder
+      id: restore-cache-vcpkg
+      uses: actions/cache/restore@v4
       with:
-        save-always: true
-        key: ${{ runner.os }}-build1-${{ github.ref }}-${{ github.sha }}
+        key: ${{ runner.os }}-vcpkg-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-build1-${{ github.ref }}
-          ${{ runner.os }}-build1-
-        path: |
-          build-windows
-          vcpkg
+          ${{ runner.os }}-vcpkg-${{ github.ref }}-
+          ${{ runner.os }}-vcpkg-
+        path: vcpkg
     - name: Configure Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1
     - name: Download 2ship.o2r
@@ -380,3 +309,9 @@ jobs:
       with:
         name: 2ship-windows
         path: 2ship-windows
+    - name: Save Cache VCPKG folder
+      if: ${{ github.ref_name == github.event.repository.default_branch }}
+      uses: actions/cache/save@v4
+      with:
+        key: ${{ steps.restore-cache-vcpkg.outputs.cache-primary-key }}
+        path: vcpkg

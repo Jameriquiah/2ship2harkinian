@@ -1,4 +1,5 @@
 #include "global.h"
+#include "2s2h/Enhancements/Audio/AudioEditor.h"
 
 typedef struct {
     /* 0x00 */ u16 sfxId;
@@ -217,7 +218,17 @@ void AudioSfx_ProcessRequest(void) {
     if (req->sfxId == NA_SE_NONE) {
         return;
     }
-
+    // #region 2S2H [Port] Custom sequences
+    evictIndex = 0x80;
+    if (req->sfxId == 0) {
+        return;
+    }
+    u16 newSfxId = AudioEditor_GetReplacementSeq(req->sfxId);
+    if (req->sfxId != newSfxId) {
+        gAudioCtx.seqReplaced[SEQ_PLAYER_SFX] = 1;
+        req->sfxId = newSfxId;
+    }
+    // #end region
     bankId = SFX_BANK(req->sfxId);
     channelCount = 0;
     index = gSfxBanks[bankId][0].next;
@@ -861,9 +872,6 @@ void AudioSfx_SetBankLerp(u8 bankId, u8 target, u16 delay) {
     sSfxBankLerp[bankId].step = ((sSfxBankLerp[bankId].value - sSfxBankLerp[bankId].target) / delay);
 }
 
-/**
- * Unused
- */
 void AudioSfx_StepBankLerp(u8 bankId) {
     if (sSfxBankLerp[bankId].remainingFrames != 0) {
         sSfxBankLerp[bankId].remainingFrames--;

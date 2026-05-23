@@ -1,6 +1,8 @@
 #include "DebugConsole.h"
 
-#include <libultraship/bridge.h>
+#include <libultraship/bridge/consolevariablebridge.h>
+#include <ship/window/Window.h>
+#include <ship/window/gui/ConsoleWindow.h>
 #include "2s2h/BenPort.h"
 #include <vector>
 #include <string>
@@ -86,7 +88,7 @@ static bool ActorSpawnHandler(std::shared_ptr<Ship::Console> Console, const std:
 static bool LoadSceneHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>&,
                              std::string* output) {
     gSaveContext.respawnFlag = 0;
-    gSaveContext.seqId = 0xFF;
+    gSaveContext.seqId = NA_BGM_DISABLED;
     gSaveContext.gameMode = 0;
 
     return 0;
@@ -119,14 +121,13 @@ static bool SetPosHandler(std::shared_ptr<Ship::Console> Console, const std::vec
 }
 
 static bool ResetHandler(std::shared_ptr<Ship::Console> Console, std::vector<std::string> args, std::string* output) {
-    if (gPlayState == nullptr) {
-        ERROR_MESSAGE("PlayState == nullptr");
+    if (gGameState == nullptr) {
+        ERROR_MESSAGE("gGameState == nullptr");
         return 1;
     }
 
-    gPlayState->gameplayFrames = 0;
-    STOP_GAMESTATE(&gPlayState->state);
-    SET_NEXT_GAMESTATE(&gPlayState->state, ConsoleLogo_Init, sizeof(ConsoleLogoState));
+    STOP_GAMESTATE(gGameState);
+    SET_NEXT_GAMESTATE(gGameState, ConsoleLogo_Init, sizeof(ConsoleLogoState));
     // GI-TODO
     // GameInteractor::Instance->ExecuteHooks<GameInteractor::OnExitGame>(gSaveContext.fileNum);
     return 0;
@@ -218,7 +219,7 @@ static bool EntranceHandler(std::shared_ptr<Ship::Console> Console, const std::v
 static bool VoidHandler(std::shared_ptr<Ship::Console> Console, const std::vector<std::string>& args,
                         std::string* output) {
     if (gPlayState != nullptr) {
-        func_80169EFC(&gPlayState->state);
+        func_80169EFC(gPlayState);
     } else {
         ERROR_MESSAGE("gPlayState == nullptr");
         return 1;

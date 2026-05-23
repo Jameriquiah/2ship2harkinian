@@ -13,8 +13,10 @@
 
 #include "build.h"
 #include "BenPort.h"
+#include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
 #include "2s2h/GameInteractor/GameInteractor.h"
 #include <stdlib.h>
+#include <libultraship/bridge/consolevariablebridge.h>
 
 #define dgShipLogoDL "__OTR__misc/nintendo_rogo_static/gShipLogoDL"
 static const ALIGN_ASSET(2) char gShipLogoDL[] = dgShipLogoDL;
@@ -46,8 +48,19 @@ void ConsoleLogo_PrintBuildInfo(ConsoleLogoState* this) {
     GfxPrint_Open(&printer, POLY_OPA_DISP);
     GfxPrint_SetColor(&printer, 131, 154, 255, 255);
 
-    GfxPrint_SetPos(&printer, 1, 25);
-    GfxPrint_Printf(&printer, "%s", gBuildVersion);
+    // if tag is empty (not a release build)
+    bool showGitInfo = gGitCommitTag[0] == 0;
+
+    if (showGitInfo) {
+        GfxPrint_SetPos(&printer, 1, 24);
+        GfxPrint_Printf(&printer, "Git Branch: %s", gGitBranch);
+
+        GfxPrint_SetPos(&printer, 1, 25);
+        GfxPrint_Printf(&printer, "Git Commit: %s", gGitCommitHash);
+    } else {
+        GfxPrint_SetPos(&printer, 1, 25);
+        GfxPrint_Printf(&printer, "%s", gBuildVersion);
+    }
     GfxPrint_SetPos(&printer, 1, 26);
     GfxPrint_Printf(&printer, "%s", gBuildDate);
 
@@ -144,8 +157,8 @@ void ConsoleLogo_Draw(GameState* thisx) {
     Matrix_Scale(1.0f, 1.0f, 1.0f, MTXMODE_APPLY);
     Matrix_RotateZYX(0, sTitleRotation, 0, MTXMODE_APPLY);
 
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx), G_MTX_LOAD);
-    gSPDisplayList(POLY_OPA_DISP++, logoDL);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, this->state.gfxCtx);
+    gSPDisplayList(POLY_OPA_DISP++, gNintendo64LogoNDL);
 
     Gfx_SetupDL39_Opa(this->state.gfxCtx);
 
@@ -193,9 +206,12 @@ void ConsoleLogo_Main(GameState* thisx) {
     gSPSegment(POLY_OPA_DISP++, 0x01, this->staticSegment);
 
     ConsoleLogo_UpdateCounters(this);
+    FrameInterpolation_StartRecord();
     ConsoleLogo_Draw(&this->state);
+    FrameInterpolation_StopRecord();
+
     if (this->exit) {
-        gSaveContext.seqId = (u8)NA_BGM_DISABLED;
+        gSaveContext.seqId = NA_BGM_DISABLED;
         gSaveContext.ambienceId = AMBIENCE_ID_DISABLED;
         gSaveContext.gameMode = GAMEMODE_TITLE_SCREEN;
 

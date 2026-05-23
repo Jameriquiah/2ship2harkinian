@@ -40,6 +40,11 @@ typedef struct {
 } Vec3i; // size = 0xC
 
 typedef struct {
+    /* 0x0 */ s16 distance;
+    /* 0x2 */ s16 angle;
+} VecPolarS; // size = 0x4
+
+typedef struct {
     /* 0x0 */ f32 distance;
     /* 0x4 */ s16 angle;
 } VecPolar; // size = 0x8
@@ -59,8 +64,8 @@ The plane paramaters are of form `ax + by + cz + d = 0`
 where `(a,b,c)` is the plane's normal vector and d is the originDist
  */
 typedef struct {
-    /* 0x00 */ Vec3f normal;
-    /* 0x0C */ f32   originDist;
+    /* 0x0 */ Vec3f normal;
+    /* 0xC */ f32   originDist;
 } Plane; // size = 0x10
 
 typedef struct {
@@ -131,6 +136,19 @@ typedef union {
     };
 } MtxF; // size = 0x40
 #endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+extern Vec3f gZeroVec3f;
+extern Vec3s gZeroVec3s;
+
+#ifdef __cplusplus
+}
+#endif
+
 #define LERPIMP(v0, v1, t) ((v0) + (((v1) - (v0)) * (t)))
 #define LERPIMP_ALT(v0, v1, t) (((v1) - (v0)) * (t) + (v0))
 #define S16_LERP(v0, v1, t) ((s16)(((v1) - (v0)) * (t)) + (v0))
@@ -155,6 +173,7 @@ typedef union {
 #define IS_ZERO(f) (fabsf(f) < 0.008f)
 
 #define SQ(x) ((x) * (x))
+#define CB(x) ((x) * (x) * (x))
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 #define ABS_ALT(x) ((x) < 0 ? -(x) : (x))
 
@@ -165,21 +184,21 @@ typedef union {
 #define TRUNCF_BINANG(f) (s16)(s32)(f)
 
 // Angle conversion macros
-#define DEG_TO_RAD(degrees) ((degrees) * (M_PI / 180.0f))
+#define DEG_TO_RAD(degrees) ((degrees) * (M_PIf / 180.0f))
 #define DEG_TO_BINANG(degrees) TRUNCF_BINANG((degrees) * (0x8000 / 180.0f))
 #define DEG_TO_BINANG_ALT(degrees) TRUNCF_BINANG(((degrees) / 180.0f) * 0x8000)
 #define DEG_TO_BINANG_ALT2(degrees) TRUNCF_BINANG(((degrees) * 0x10000) / 360.0f)
 #define DEG_TO_BINANG_ALT3(degrees) ((degrees) * (0x8000 / 180.0f))
 
-#define RAD_TO_DEG(radians) ((radians) * (180.0f / M_PI))
-#define RAD_TO_BINANG(radians) TRUNCF_BINANG((radians) * (0x8000 / M_PI))
-#define RAD_TO_BINANG_ALT(radians) TRUNCF_BINANG(((radians) / M_PI) * 0x8000)
-#define RAD_TO_BINANG_ALT2(radians) TRUNCF_BINANG(((radians) * 0x8000) / M_PI)
+#define RAD_TO_DEG(radians) ((radians) * (180.0f / M_PIf))
+#define RAD_TO_BINANG(radians) TRUNCF_BINANG((radians) * (0x8000 / M_PIf))
+#define RAD_TO_BINANG_ALT(radians) TRUNCF_BINANG(((radians) / M_PIf) * 0x8000)
+#define RAD_TO_BINANG_ALT2(radians) TRUNCF_BINANG(((radians) * 0x8000) / M_PIf)
 
 #define BINANG_TO_DEG(binang) ((f32)(binang) * (180.0f / 0x8000))
-#define BINANG_TO_RAD(binang) ((f32)(binang) * (M_PI / 0x8000))
-#define BINANG_TO_RAD_ALT(binang) (((f32)(binang) / 0x8000) * M_PI)
-#define BINANG_TO_RAD_ALT2(binang) (((f32)(binang) * M_PI) / 0x8000)
+#define BINANG_TO_RAD(binang) ((f32)(binang) * (M_PIf / 0x8000))
+#define BINANG_TO_RAD_ALT(binang) (((f32)(binang) / 0x8000) * M_PIf)
+#define BINANG_TO_RAD_ALT2(binang) (((f32)(binang) * M_PIf) / 0x8000)
 
 // Angle arithmetic macros
 #define BINANG_ROT180(angle) ((s16)(angle + 0x8000))

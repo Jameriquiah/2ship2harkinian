@@ -1,31 +1,43 @@
-#include <libultraship/bridge.h>
+#include <libultraship/bridge/consolevariablebridge.h>
 #include "2s2h/GameInteractor/GameInteractor.h"
-
-#define ELFMSG3_GET_SWITCH_FLAG(thisx) (((thisx)->params & 0x7F00) >> 8)
+#include "2s2h/ShipInit.hpp"
 
 extern "C" {
-#include "z64.h"
-extern PlayState* gPlayState;
-extern SaveContext gSaveContext;
-extern u32 gBitFlags[];
-void Flags_SetWeekEventReg(s32 flag);
-void Flags_SetSwitch(PlayState* play, s32 flag);
-void Actor_Kill(Actor* actor);
+#include "variables.h"
+#include "functions.h"
+#include "overlays/actors/ovl_Elf_Msg/z_elf_msg.h"
+#include "overlays/actors/ovl_Elf_Msg3/z_elf_msg3.h"
+#include "overlays/actors/ovl_Elf_Msg4/z_elf_msg4.h"
 }
+
+#define CVAR_NAME "gEnhancements.Cutscenes.SkipMiscInteractions"
+#define CVAR CVarGetInteger(CVAR_NAME, 0)
 
 void RegisterSkipTatlInterrupts() {
     // First time entering Clock Town Interupt
-    REGISTER_VB_SHOULD(VB_PLAY_TRANSITION_CS, {
+    COND_VB_SHOULD(VB_PLAY_TRANSITION_CS, CVAR, {
         if (gSaveContext.save.entrance == ENTRANCE(SOUTH_CLOCK_TOWN, 0) && gSaveContext.save.cutsceneIndex == 0 &&
-            !CHECK_WEEKEVENTREG(WEEKEVENTREG_59_04) &&
-            CVarGetInteger("gEnhancements.Cutscenes.SkipMiscInteractions", 0)) {
+            !CHECK_WEEKEVENTREG(WEEKEVENTREG_59_04)) {
             Flags_SetWeekEventReg(WEEKEVENTREG_59_04);
+            Sram_SaveSpecialEnterClockTown(gPlayState);
         }
     });
 
-    // General interupt
-    REGISTER_VB_SHOULD(VB_TATL_INTERUPT_MSG3, {
-        if (CVarGetInteger("gEnhancements.Cutscenes.SkipMiscInteractions", 0) && *should) {
+    // General Interupt
+    COND_VB_SHOULD(VB_TATL_INTERRUPT_MSG, CVAR, {
+        if (*should) {
+            Actor* actor = va_arg(args, Actor*);
+            *should = false;
+            if (ELFMSG_GET_SWITCH_FLAG(actor) != 0x7F) {
+                Flags_SetSwitch(gPlayState, ELFMSG_GET_SWITCH_FLAG(actor));
+            }
+            Actor_Kill(actor);
+        }
+    });
+
+    // General interupt (3)
+    COND_VB_SHOULD(VB_TATL_INTERRUPT_MSG3, CVAR, {
+        if (*should) {
             Actor* actor = va_arg(args, Actor*);
             *should = false;
             if (ELFMSG3_GET_SWITCH_FLAG(actor) != 0x7F) {
@@ -35,10 +47,22 @@ void RegisterSkipTatlInterrupts() {
         }
     });
 
-    // General interupt 2 (the flags were directly copied from the original code)
-    REGISTER_VB_SHOULD(VB_TATL_INTERUPT_MSG6, {
-        if (CVarGetInteger("gEnhancements.Cutscenes.SkipMiscInteractions", 0) && *should) {
+    // General interupt (4)
+    COND_VB_SHOULD(VB_TATL_INTERRUPT_MSG4, CVAR, {
+        if (*should) {
             Actor* actor = va_arg(args, Actor*);
+            *should = false;
+            if (ELFMSG4_GET_SWITCH_FLAG(actor) != 0x7F) {
+                Flags_SetSwitch(gPlayState, ELFMSG4_GET_SWITCH_FLAG(actor));
+            }
+            Actor_Kill(actor);
+        }
+    });
+
+    // General interupt (6) (the flags were directly copied from the original code)
+    COND_VB_SHOULD(VB_TATL_INTERRUPT_MSG6, CVAR, {
+        Actor* actor = va_arg(args, Actor*);
+        if (*should && actor->csId != -1 && actor->csId != 124) {
             *should = false;
             switch (actor->textId) {
                 case 0x224:
@@ -84,3 +108,5 @@ void RegisterSkipTatlInterrupts() {
         }
     });
 }
+
+static RegisterShipInitFunc initFunc(RegisterSkipTatlInterrupts, { CVAR_NAME });

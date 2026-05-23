@@ -1,6 +1,7 @@
 #include "2s2h/resource/importer/scenecommand/SetAlternateHeadersFactory.h"
 #include "2s2h/resource/type/scenecommand/SetAlternateHeaders.h"
-#include "libultraship/libultraship.h"
+#include <ship/Context.h>
+#include <ship/resource/ResourceManager.h>
 
 namespace SOH {
 std::shared_ptr<Ship::IResource>

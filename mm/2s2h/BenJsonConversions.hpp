@@ -1,8 +1,14 @@
 #ifndef BenJsonConversions_hpp
 #define BenJsonConversions_hpp
 
-#include "z64.h"
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+#include "build.h"
+
+extern "C" {
+#include "z64save.h"
+#include "macros.h"
+}
 
 using json = nlohmann::json;
 
@@ -20,16 +26,130 @@ void from_json(const json& j, DpadSaveInfo& dpadEquips) {
     }
 }
 
+void to_json(json& j, const RandoSaveCheck& randoSaveCheck) {
+    j = json{
+        { "randoItemId", randoSaveCheck.randoItemId },
+        { "eligible", randoSaveCheck.eligible },
+        { "cycleObtained", randoSaveCheck.cycleObtained },
+        { "obtained", randoSaveCheck.obtained },
+        { "shuffled", randoSaveCheck.shuffled },
+        { "skipped", randoSaveCheck.skipped },
+        { "price", randoSaveCheck.price },
+    };
+}
+
+void from_json(const json& j, RandoSaveCheck& randoSaveCheck) {
+    j.at("randoItemId").get_to(randoSaveCheck.randoItemId);
+    j.at("eligible").get_to(randoSaveCheck.eligible);
+    j.at("cycleObtained").get_to(randoSaveCheck.cycleObtained);
+    j.at("obtained").get_to(randoSaveCheck.obtained);
+    j.at("shuffled").get_to(randoSaveCheck.shuffled);
+    j.at("skipped").get_to(randoSaveCheck.skipped);
+    j.at("price").get_to(randoSaveCheck.price);
+}
+
+void to_json(json& j, const RandoSaveInfo& rando) {
+    j = json{
+        { "randoInf", rando.randoInf },
+        { "randoEvents", rando.randoEvents },
+        { "randoSaveChecks", rando.randoSaveChecks },
+        { "finalSeed", rando.finalSeed },
+        { "randoSaveOptions", rando.randoSaveOptions },
+        { "randoStartingItems", rando.randoStartingItems },
+        { "foundDungeonKeys", rando.foundDungeonKeys },
+        { "foundTriforcePieces", rando.foundTriforcePieces },
+    };
+}
+
+void from_json(const json& j, RandoSaveInfo& rando) {
+    j.at("randoInf").get_to(rando.randoInf);
+    j.at("randoEvents").get_to(rando.randoEvents);
+    j.at("randoSaveChecks").get_to(rando.randoSaveChecks);
+    j.at("finalSeed").get_to(rando.finalSeed);
+    j.at("randoSaveOptions").get_to(rando.randoSaveOptions);
+    j.at("randoStartingItems").get_to(rando.randoStartingItems);
+    j.at("foundDungeonKeys").get_to(rando.foundDungeonKeys);
+    j.at("foundTriforcePieces").get_to(rando.foundTriforcePieces);
+}
+
+void to_json(json& j, const Vec3f& vec) {
+    j = json{
+        { "x", vec.x },
+        { "y", vec.y },
+        { "z", vec.z },
+    };
+}
+
+void from_json(const json& j, Vec3f& vec) {
+    j.at("x").get_to(vec.x);
+    j.at("y").get_to(vec.y);
+    j.at("z").get_to(vec.z);
+}
+
+void to_json(json& j, const RespawnData& respawnData) {
+    j = json{
+        { "pos", respawnData.pos },
+        { "yaw", respawnData.yaw },
+        { "playerParams", respawnData.playerParams },
+        { "entrance", respawnData.entrance },
+        { "roomIndex", respawnData.roomIndex },
+        { "data", respawnData.data },
+        { "tempSwitchFlags", respawnData.tempSwitchFlags },
+        { "unk_18", respawnData.unk_18 },
+        { "tempCollectFlags", respawnData.tempCollectFlags },
+    };
+}
+
+void from_json(const json& j, RespawnData& respawnData) {
+    j.at("pos").get_to(respawnData.pos);
+    j.at("yaw").get_to(respawnData.yaw);
+    j.at("playerParams").get_to(respawnData.playerParams);
+    j.at("entrance").get_to(respawnData.entrance);
+    j.at("roomIndex").get_to(respawnData.roomIndex);
+    j.at("data").get_to(respawnData.data);
+    j.at("tempSwitchFlags").get_to(respawnData.tempSwitchFlags);
+    j.at("unk_18").get_to(respawnData.unk_18);
+    j.at("tempCollectFlags").get_to(respawnData.tempCollectFlags);
+}
+
 void to_json(json& j, const ShipSaveInfo& shipSaveInfo) {
-    j = json {
+    uint8_t commitHash[8];
+    memcpy(commitHash, shipSaveInfo.commitHash, sizeof(commitHash));
+
+    j = json{
         { "dpadEquips", shipSaveInfo.dpadEquips },
         { "pauseSaveEntrance", shipSaveInfo.pauseSaveEntrance },
+        { "saveType", shipSaveInfo.saveType },
+        { "fileCreatedAt", shipSaveInfo.fileCreatedAt },
+        { "fileCompletedAt", shipSaveInfo.fileCompletedAt },
+        { "filePlaytime", shipSaveInfo.filePlaytime },
+        { "respawn", shipSaveInfo.respawn },
+        { "commitHash", commitHash },
     };
+
+    if (shipSaveInfo.saveType == SAVETYPE_RANDO) {
+        j["rando"] = shipSaveInfo.rando;
+    }
 }
 
 void from_json(const json& j, ShipSaveInfo& shipSaveInfo) {
     j.at("dpadEquips").get_to(shipSaveInfo.dpadEquips);
     j.at("pauseSaveEntrance").get_to(shipSaveInfo.pauseSaveEntrance);
+    j.at("saveType").get_to(shipSaveInfo.saveType);
+    j.at("fileCreatedAt").get_to(shipSaveInfo.fileCreatedAt);
+    j.at("fileCompletedAt").get_to(shipSaveInfo.fileCompletedAt);
+    j.at("filePlaytime").get_to(shipSaveInfo.filePlaytime);
+    j.at("respawn").get_to(shipSaveInfo.respawn);
+    j.at("commitHash").get_to(shipSaveInfo.commitHash);
+
+    if (shipSaveInfo.saveType == SAVETYPE_RANDO) {
+        if (strcmp(shipSaveInfo.commitHash, gGitCommitHash) != 0) {
+            SPDLOG_ERROR("Randomizer saves cannot be loaded from a different version.");
+            throw new std::runtime_error("Randomizer saves cannot be loaded from a different version.");
+        }
+
+        j.at("rando").get_to(shipSaveInfo.rando);
+    }
 }
 
 void to_json(json& j, const ItemEquips& itemEquips) {
@@ -128,7 +248,7 @@ void to_json(json& j, const SavePlayerData& savePlayerData) {
         { "isDoubleMagicAcquired", savePlayerData.isDoubleMagicAcquired },
         { "doubleDefense", savePlayerData.doubleDefense },
         { "unk_1F", savePlayerData.unk_1F },
-        { "unk_20", savePlayerData.unk_20 },
+        { "unk_20", savePlayerData.owlWarpId }, // TODO: Migrate save to use the new name?
         { "owlActivationFlags", savePlayerData.owlActivationFlags },
         { "unk_24", savePlayerData.unk_24 },
         { "savedSceneId", savePlayerData.savedSceneId },
@@ -150,7 +270,7 @@ void from_json(const json& j, SavePlayerData& savePlayerData) {
     j.at("isDoubleMagicAcquired").get_to(savePlayerData.isDoubleMagicAcquired);
     j.at("doubleDefense").get_to(savePlayerData.doubleDefense);
     j.at("unk_1F").get_to(savePlayerData.unk_1F);
-    j.at("unk_20").get_to(savePlayerData.unk_20);
+    j.at("unk_20").get_to(savePlayerData.owlWarpId); // TODO: Migrate save to use the new name?
     j.at("owlActivationFlags").get_to(savePlayerData.owlActivationFlags);
     j.at("unk_24").get_to(savePlayerData.unk_24);
     j.at("savedSceneId").get_to(savePlayerData.savedSceneId);
@@ -196,7 +316,7 @@ void to_json(json& j, const SaveInfo& saveInfo) {
         { "pictoFlags1", saveInfo.pictoFlags1 },
         { "unk_E5C", saveInfo.unk_E5C },
         { "unk_E60", saveInfo.unk_E60 },
-        { "unk_E64", saveInfo.unk_E64 },
+        { "unk_E64", saveInfo.alienInfo }, // TODO: Add migration to rename this?
         { "scenesVisible", saveInfo.scenesVisible },
         { "skullTokenCount", saveInfo.skullTokenCount },
         { "unk_EA0", saveInfo.unk_EA0 },
@@ -232,7 +352,7 @@ void from_json(const json& j, SaveInfo& saveInfo) {
     j.at("pictoFlags1").get_to(saveInfo.pictoFlags1);
     j.at("unk_E5C").get_to(saveInfo.unk_E5C);
     j.at("unk_E60").get_to(saveInfo.unk_E60);
-    j.at("unk_E64").get_to(saveInfo.unk_E64);
+    j.at("unk_E64").get_to(saveInfo.alienInfo); // TODO: Add migration to rename this?
     j.at("scenesVisible").get_to(saveInfo.scenesVisible);
     j.at("skullTokenCount").get_to(saveInfo.skullTokenCount);
     j.at("unk_EA0").get_to(saveInfo.unk_EA0);
@@ -268,7 +388,7 @@ void to_json(json& j, const Save& save) {
         { "linkAge", save.linkAge },
         { "cutsceneIndex", save.cutsceneIndex },
         { "time", save.time },
-        { "owlSaveLocation", save.owlSaveLocation },
+        { "owlSaveLocation", save.owlWarpId }, // TODO: Migrate save to use the new name?
         { "isNight", save.isNight },
         { "timeSpeedOffset", save.timeSpeedOffset },
         { "day", save.day },
@@ -290,7 +410,7 @@ void from_json(const json& j, Save& save) {
     j.at("linkAge").get_to(save.linkAge);
     j.at("cutsceneIndex").get_to(save.cutsceneIndex);
     j.at("time").get_to(save.time);
-    j.at("owlSaveLocation").get_to(save.owlSaveLocation);
+    j.at("owlSaveLocation").get_to(save.owlWarpId); // TODO: Migrate save to use the new name?
     j.at("isNight").get_to(save.isNight);
     j.at("timeSpeedOffset").get_to(save.timeSpeedOffset);
     j.at("day").get_to(save.day);

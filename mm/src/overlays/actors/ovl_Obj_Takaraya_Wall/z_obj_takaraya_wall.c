@@ -27,9 +27,9 @@
 #include "z_obj_takaraya_wall.h"
 #include "objects/object_takaraya_objects/object_takaraya_objects.h"
 
-#define FLAGS (ACTOR_FLAG_10 | ACTOR_FLAG_20)
+#include "2s2h/Enhancements/FrameInterpolation/FrameInterpolation.h"
 
-#define THIS ((ObjTakarayaWall*)thisx)
+#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
 void ObjTakarayaWall_Init(Actor* thisx, PlayState* play);
 void ObjTakarayaWall_Destroy(Actor* thisx, PlayState* play);
@@ -38,7 +38,7 @@ void ObjTakarayaWall_Draw(Actor* thisx, PlayState* play);
 
 void ObjTakarayaWall_Manage(ObjTakarayaWall* this, PlayState* play);
 
-ActorInit Obj_Takaraya_Wall_InitVars = {
+ActorProfile Obj_Takaraya_Wall_Profile = {
     /**/ ACTOR_OBJ_TAKARAYA_WALL,
     /**/ ACTORCAT_BG,
     /**/ FLAGS,
@@ -52,7 +52,7 @@ ActorInit Obj_Takaraya_Wall_InitVars = {
 
 static ColliderCylinderInit sCylinderInit = {
     {
-        COLTYPE_NONE,
+        COL_MATERIAL_NONE,
         AT_NONE,
         AC_NONE,
         OC1_ON | OC1_TYPE_ALL,
@@ -60,11 +60,11 @@ static ColliderCylinderInit sCylinderInit = {
         COLSHAPE_CYLINDER,
     },
     {
-        ELEMTYPE_UNK0,
+        ELEM_MATERIAL_UNK0,
         { 0x00000000, 0x00, 0x00 },
         { 0x00000000, 0x00, 0x00 },
-        TOUCH_NONE | TOUCH_SFX_NORMAL,
-        BUMP_NONE,
+        ATELEM_NONE | ATELEM_SFX_NORMAL,
+        ACELEM_NONE,
         OCELEM_ON,
     },
     { 40, 120, 0, { 0, 0, 0 } },
@@ -275,7 +275,7 @@ void ObjTakarayaWall_CarvePath(s32 row, s32 column) {
 }
 
 void ObjTakarayaWall_Init(Actor* thisx, PlayState* play) {
-    ObjTakarayaWall* this = THIS;
+    ObjTakarayaWall* this = (ObjTakarayaWall*)thisx;
     Actor* chest;
     s32 column;
     s32 i;
@@ -301,7 +301,7 @@ void ObjTakarayaWall_Init(Actor* thisx, PlayState* play) {
     this->actor.shape.rot.z = 0;
 
     if (chest != NULL) {
-        chest->uncullZoneForward = 2000.0f;
+        chest->cullingVolumeDistance = 2000.0f;
     }
 
     sTakarayaWallHeights[0][column] = -10.0f;
@@ -336,7 +336,7 @@ void ObjTakarayaWall_Init(Actor* thisx, PlayState* play) {
 }
 
 void ObjTakarayaWall_Destroy(Actor* thisx, PlayState* play) {
-    ObjTakarayaWall* this = THIS;
+    ObjTakarayaWall* this = (ObjTakarayaWall*)thisx;
     s32 i;
     s32 j;
 
@@ -441,7 +441,7 @@ void ObjTakarayaWall_Manage(ObjTakarayaWall* this, PlayState* play) {
 
 void ObjTakarayaWall_Update(Actor* thisx, PlayState* play2) {
     PlayState* play = play2;
-    ObjTakarayaWall* this = THIS;
+    ObjTakarayaWall* this = (ObjTakarayaWall*)thisx;
 
     this->actionFunc(this, play);
 
@@ -451,7 +451,7 @@ void ObjTakarayaWall_Update(Actor* thisx, PlayState* play2) {
 
 void ObjTakarayaWall_Draw(Actor* thisx, PlayState* play) {
     Vec3f audioPos;
-    ObjTakarayaWall* this = THIS;
+    ObjTakarayaWall* this = (ObjTakarayaWall*)thisx;
     MtxF* mtx;
     Gfx* gfx;
     s32 i;
@@ -468,11 +468,12 @@ void ObjTakarayaWall_Draw(Actor* thisx, PlayState* play) {
     for (i = 0; i < TAKARAYA_WALL_ROWS; i++) {
         for (j = 0; j < TAKARAYA_WALL_COLUMNS; j++) {
             if (sTakarayaWallHeights[i][j] > 0.0f) {
+                FrameInterpolation_RecordOpenChild(this, i * TAKARAYA_WALL_COLUMNS + j);
                 mtx->xw = (i * 120) - 1620;
                 mtx->yw = sTakarayaWallHeights[i][j] + (this->actor.world.pos.y - 120.0f);
                 mtx->zw = (j * 120) + 60;
 
-                gSPMatrix(gfx++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                MATRIX_FINALIZE_AND_LOAD(gfx++, play->state.gfxCtx);
 
                 if (((i + j) % 2) != 0) {
                     gSPDisplayList(gfx++, gTreasureChestShopWallWhiteDL);
@@ -494,6 +495,8 @@ void ObjTakarayaWall_Draw(Actor* thisx, PlayState* play) {
                         Audio_PlaySfx_AtPos(&sTakarayaWallAudioPositions[i][j], NA_SE_EV_ROCK_CUBE_FALL - SFX_FLAG);
                     }
                 }
+
+                FrameInterpolation_RecordCloseChild();
             }
         }
     }

@@ -56,7 +56,7 @@ u64 aspMainDataEnd[100];
 
 u8 sNumSeqRequests[5];
 u32 sAudioSeqCmds[0x100];
-ActiveSequence gActiveSeqs[5];
+
 u8 sResetAudioHeapTimer;
 u16 sResetAudioHeapFadeReverbVolume;
 u16 sResetAudioHeapFadeReverbVolumeStep;
@@ -83,8 +83,8 @@ u16 D_0F000000[SCREEN_WIDTH * SCREEN_HEIGHT];
 // u64 gspF3DZEX2_NoN_PosLight_fifoDataStart[1];
 // u64 gspF3DZEX2_NoN_PosLight_fifoDataEnd[1];
 
-Vec3f gZeroVec3f;
-Vec3s gZeroVec3s;
+Vec3f gZeroVec3f = { 0.0f, 0.0f, 0.0f };
+Vec3s gZeroVec3s = { 0, 0, 0 };
 
 u64 rspbootTextStart[1];
 u64 rspbootTextEnd[1];
@@ -132,9 +132,6 @@ void Audio_osInvalDCache(void* buf, s32 size) {
 }
 
 void Audio_osWritebackDCache(void* mem, s32 size) {
-}
-
-void Audio_SetBGM(u32 bgmId) {
 }
 
 OSPiHandle* osDriveRomInit() {
@@ -203,6 +200,20 @@ void gSPDisplayList(Gfx* pkt, Gfx* dl) {
     __gSPDisplayList(pkt, dl);
 }
 
+void gDPSetTileSizeInterp(Gfx* pkt, int t, float uls, float ult, float lrs, float lrt) {
+    __gDPSetTileSizeInterp(pkt, t, 0, 0, 0, 0);
+    pkt->words.w0 = _SHIFTL(G_SETTILESIZE_INTERP, 24, 8);
+    pkt++;
+
+    pkt->words.w0 = *(u32*)&uls;
+    pkt->words.w1 = *(u32*)&ult;
+    pkt++;
+
+    pkt->words.w0 = *(u32*)&lrs;
+    pkt->words.w1 = *(u32*)&lrt;
+    pkt++;
+}
+
 void gSPDisplayListOffset(Gfx* pkt, Gfx* dl, int offset) {
     char* imgData = (char*)dl;
 
@@ -231,8 +242,6 @@ void gSPInvalidateTexCache(Gfx* pkt, uintptr_t texAddr) {
     __gSPInvalidateTexCache(pkt, texAddr);
 }
 
-u16 func_801A5100(void) {
-}
 void __osDispatchThread(void) {
 }
 
@@ -269,7 +278,42 @@ void osMapTLBRdb(void) {
 u32 __osProbeTLB(void* param_1) {
 }
 s32 osAiSetFrequency(u32 frequency) {
-    return 1;
+    // this is based off the math from the original method
+    /*
+    s32 osAiSetFrequency(u32 frequency) {
+        u8 bitrate;
+        f32 dacRateF = ((f32)osViClock / frequency) + 0.5f;
+        u32 dacRate = dacRateF;
+        if (dacRate < 132) {
+            return -1;
+        }
+        bitrate = (dacRate / 66);
+        if (bitrate > 16) {
+            bitrate = 16;
+        }
+        HW_REG(AI_DACRATE_REG, u32) = dacRate - 1;
+        HW_REG(AI_BITRATE_REG, u32) = bitrate - 1;
+        return osViClock / (s32)dacRate;
+    }
+    */
+
+    // bitrate is unused
+
+    // osViClock comes from
+    // #define VI_NTSC_CLOCK 48681812 /* Hz = 48.681812 MHz */
+    // s32 osViClock = VI_NTSC_CLOCK;
+
+    // frequency was originally 32000
+
+    // given all of that, dacRate is
+    // (u32)(((f32)48681812 / 32000) + 0.5f)
+    // which evaluates to 1521 (which is > 132)
+
+    // this leaves us with a final calculation of
+    // 48681812 / 1521
+    // which evaluates to 32006
+
+    return 32006;
 }
 s32 osContStartQuery(OSMesgQueue* mq) {
 }
@@ -754,7 +798,7 @@ void guLookAt(Mtx* m, f32 xEye, f32 yEye, f32 zEye, f32 xAt, f32 yAt, f32 zAt, f
     // guMtxF2L(mf, m);
 }
 void guRotateF(float m[4][4], float a, float x, float y, float z) {
-    static float D_80097F90 = M_PI / 180.0f;
+    static float D_80097F90 = M_PIf / 180.0f;
     float sine;
     float cosine;
     float ab;

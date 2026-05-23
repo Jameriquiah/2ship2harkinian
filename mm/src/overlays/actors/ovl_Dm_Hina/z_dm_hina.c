@@ -6,10 +6,9 @@
 
 #include "z_dm_hina.h"
 #include "objects/gameplay_keep/gameplay_keep.h"
+#include "2s2h/GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_10 | ACTOR_FLAG_20)
-
-#define THIS ((DmHina*)thisx)
+#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
 
 void DmHina_Init(Actor* thisx, PlayState* play);
 void DmHina_Destroy(Actor* thisx, PlayState* play);
@@ -21,7 +20,7 @@ void func_80A1F56C(DmHina* this, PlayState* play);
 void func_80A1F5AC(DmHina* this, PlayState* play);
 void func_80A1F63C(DmHina* this, PlayState* play);
 
-ActorInit Dm_Hina_InitVars = {
+ActorProfile Dm_Hina_Profile = {
     /**/ ACTOR_DM_HINA,
     /**/ ACTORCAT_ITEMACTION,
     /**/ FLAGS,
@@ -34,7 +33,7 @@ ActorInit Dm_Hina_InitVars = {
 };
 
 void DmHina_Init(Actor* thisx, PlayState* play) {
-    DmHina* this = THIS;
+    DmHina* this = (DmHina*)thisx;
 
     this->isDrawn = true;
     this->actionFunc = func_80A1F470;
@@ -127,7 +126,7 @@ void func_80A1F75C(DmHina* this, PlayState* play) {
 }
 
 void DmHina_Update(Actor* thisx, PlayState* play) {
-    DmHina* this = THIS;
+    DmHina* this = (DmHina*)thisx;
 
     this->actionFunc(this, play);
     func_80A1F75C(this, play);
@@ -150,9 +149,9 @@ void func_80A1F9AC(DmHina* this, PlayState* play) {
                          this->actor.world.pos.z, MTXMODE_NEW);
         Matrix_ReplaceRotation(&play->billboardMtxF);
         Matrix_Scale(this->unk14C * 20.0f, this->unk14C * 20.0f, this->unk14C * 20.0f, MTXMODE_APPLY);
-        Matrix_RotateZF(Rand_ZeroFloat(2 * M_PI), MTXMODE_APPLY);
+        Matrix_RotateZF(Rand_ZeroFloat(2 * M_PIf), MTXMODE_APPLY);
 
-        gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+        MATRIX_FINALIZE_AND_LOAD(POLY_XLU_DISP++, gfxCtx);
         gSPDisplayList(POLY_XLU_DISP++, gLightOrbModelDL);
 
         CLOSE_DISPS(gfxCtx);
@@ -160,7 +159,7 @@ void func_80A1F9AC(DmHina* this, PlayState* play) {
 }
 
 void DmHina_Draw(Actor* thisx, PlayState* play) {
-    DmHina* this = THIS;
+    DmHina* this = (DmHina*)thisx;
     f32 scale;
 
     if (this->isDrawn) {
@@ -170,25 +169,27 @@ void DmHina_Draw(Actor* thisx, PlayState* play) {
         Matrix_RotateZYX(0, play->gameplayFrames * 0x3E8, 0, MTXMODE_APPLY);
         scale = this->unk148 * (1.0f - this->unk14C) * this->unk15C;
         Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);
-        switch (this->actor.params) {
-            case 0:
-                GetItem_Draw(play, GID_REMAINS_ODOLWA);
-                break;
+        if (GameInteractor_Should(VB_DRAW_BOSS_REMAINS, true, this)) {
+            switch (this->actor.params) {
+                case 0:
+                    GetItem_Draw(play, GID_REMAINS_ODOLWA);
+                    break;
 
-            case 1:
-                GetItem_Draw(play, GID_REMAINS_GOHT);
-                break;
+                case 1:
+                    GetItem_Draw(play, GID_REMAINS_GOHT);
+                    break;
 
-            case 2:
-                GetItem_Draw(play, GID_REMAINS_GYORG);
-                break;
+                case 2:
+                    GetItem_Draw(play, GID_REMAINS_GYORG);
+                    break;
 
-            case 3:
-                GetItem_Draw(play, GID_REMAINS_TWINMOLD);
-                break;
+                case 3:
+                    GetItem_Draw(play, GID_REMAINS_TWINMOLD);
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
+            }
         }
         func_80A1F9AC(this, play);
     }

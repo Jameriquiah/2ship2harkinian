@@ -7,6 +7,7 @@
 
 #include "2s2h/BenGui/UIWidgets.hpp"
 #include "2s2h/GameInteractor/GameInteractor.h"
+#include "2s2h/ShipUtils.h"
 
 extern "C" {
 #include <z64.h>
@@ -39,9 +40,9 @@ struct EventLogEntry {
 std::vector<EventLogEntry> eventLogEntries;
 
 const char* flagTypeNames[] = {
-    "",      "weekEventReg", "eventInf",    "scenesVisible", "owlActivation",
-    "chest", "switch",       "clearedRoom", "collectible",   "unk_14",
-    "rooms", "chest *",      "switch *",    "clearedRoom *", "collectible *",
+    "",        "weekEventReg", "weekEventHorse", "eventInf",      "scenesVisible", "owlActivation",
+    "chest",   "switch",       "clearedRoom",    "collectible",   "unk_14",        "rooms",
+    "chest *", "switch *",     "clearedRoom *",  "collectible *", "randoInf",
 };
 
 #define DEFINE_ACTOR(name, _enumValue, _allocType, _debugName, _humanName) { _enumValue, _debugName },
@@ -55,19 +56,6 @@ std::unordered_map<s16, const char*> actorNames = {
 #undef DEFINE_ACTOR
 #undef DEFINE_ACTOR_INTERNAL
 #undef DEFINE_ACTOR_UNSET
-
-// 2S2H Added columns to scene table: entranceSceneId, betterMapSelectIndex, humanName
-#define DEFINE_SCENE(_name, enumValue, _textId, _drawConfig, _restrictionFlags, _persistentCycleFlags, \
-                     _entranceSceneId, _betterMapSelectIndex, humanName)                               \
-    { enumValue, humanName },
-#define DEFINE_SCENE_UNSET(_enumValue)
-
-std::unordered_map<s16, const char*> sceneNames = {
-#include "tables/scene_table.h"
-};
-
-#undef DEFINE_SCENE
-#undef DEFINE_SCENE_UNSET
 
 static HOOK_ID onFlagSetHookId = 0;
 static HOOK_ID onFlagUnsetHookId = 0;
@@ -136,6 +124,13 @@ void RegisterEventLogHooks() {
                                                                     .type = EVENT_LOG_ENTRY_TYPE_FLAG_SET,
                                                                     .meta = fmt::format("EVENTINF_{:02x}", flag),
                                                                 });
+            } else if (type == FlagType::FLAG_WEEK_EVENT_REG_HORSE_RACE) {
+                eventLogEntries.insert(eventLogEntries.begin(),
+                                       {
+                                           .timestamp = CurrentTime(),
+                                           .type = EVENT_LOG_ENTRY_TYPE_FLAG_SET,
+                                           .meta = fmt::format("WEEKEVENTREG_HORSE_RACE_STATE {:03b}", flag),
+                                       });
             } else {
                 eventLogEntries.insert(
                     eventLogEntries.begin(),
@@ -219,34 +214,37 @@ void RegisterEventLogHooks() {
         TrimEventLog();
     });
 
-    onSceneInitHookId = GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneInit>([](s16 sceneId,
-                                                                                                   s8 spawnNum) {
-        eventLogEntries.insert(eventLogEntries.begin(), {
-                                                            .timestamp = CurrentTime(),
-                                                            .type = EVENT_LOG_ENTRY_TYPE_SCENE_INIT,
-                                                            .meta = fmt::format("{} {}", sceneNames[sceneId], spawnNum),
-                                                        });
-        TrimEventLog();
-    });
+    onSceneInitHookId =
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnSceneInit>([](s16 sceneId, s8 spawnNum) {
+            eventLogEntries.insert(eventLogEntries.begin(),
+                                   {
+                                       .timestamp = CurrentTime(),
+                                       .type = EVENT_LOG_ENTRY_TYPE_SCENE_INIT,
+                                       .meta = fmt::format("{} {}", Ship_GetSceneName(sceneId), spawnNum),
+                                   });
+            TrimEventLog();
+        });
 
-    onRoomInitHookId = GameInteractor::Instance->RegisterGameHook<GameInteractor::OnRoomInit>([](s16 sceneId,
-                                                                                                 s8 roomId) {
-        eventLogEntries.insert(eventLogEntries.begin(), {
-                                                            .timestamp = CurrentTime(),
-                                                            .type = EVENT_LOG_ENTRY_TYPE_ROOM_INIT,
-                                                            .meta = fmt::format("{} {}", sceneNames[sceneId], roomId),
-                                                        });
-        TrimEventLog();
-    });
+    onRoomInitHookId =
+        GameInteractor::Instance->RegisterGameHook<GameInteractor::OnRoomInit>([](s16 sceneId, s8 roomId) {
+            eventLogEntries.insert(eventLogEntries.begin(),
+                                   {
+                                       .timestamp = CurrentTime(),
+                                       .type = EVENT_LOG_ENTRY_TYPE_ROOM_INIT,
+                                       .meta = fmt::format("{} {}", Ship_GetSceneName(sceneId), roomId),
+                                   });
+            TrimEventLog();
+        });
 
-    onOpenTextHookId = GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>([](s16 textId) {
-        eventLogEntries.insert(eventLogEntries.begin(), {
-                                                            .timestamp = CurrentTime(),
-                                                            .type = EVENT_LOG_ENTRY_TYPE_OPEN_TEXT,
-                                                            .meta = fmt::format("0x{:02x}", textId),
-                                                        });
-        TrimEventLog();
-    });
+    onOpenTextHookId = GameInteractor::Instance->RegisterGameHook<GameInteractor::OnOpenText>(
+        [](u16* textId, bool* loadFromMessageTable) {
+            eventLogEntries.insert(eventLogEntries.begin(), {
+                                                                .timestamp = CurrentTime(),
+                                                                .type = EVENT_LOG_ENTRY_TYPE_OPEN_TEXT,
+                                                                .meta = fmt::format("0x{:02x}", *textId),
+                                                            });
+            TrimEventLog();
+        });
 
     onItemGiveHookId = GameInteractor::Instance->RegisterGameHook<GameInteractor::OnItemGive>([](u8 item) {
         eventLogEntries.insert(eventLogEntries.begin(), {
@@ -265,7 +263,7 @@ void EventLogWindow::DrawElement() {
 
     ImGui::SameLine();
 
-    if (UIWidgets::Button("Filters", { .size = UIWidgets::Sizes::Inline })) {
+    if (UIWidgets::Button("Filters", UIWidgets::ButtonOptions{}.Size(UIWidgets::Sizes::Inline))) {
         ImGui::OpenPopup("eventLogFiltersPopup");
     }
 
@@ -313,7 +311,7 @@ void EventLogWindow::DrawElement() {
                 CVarSetInteger("gEventLog.Filter.OpenText", 0);
                 CVarSetInteger("gEventLog.Filter.ItemGive", 0);
             }
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
+            Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
         }
         g->CurrentItemFlags = backup_item_flags;
 
@@ -342,7 +340,7 @@ void EventLogWindow::DrawElement() {
     s32 maxEntries = CVarGetInteger("gEventLog.MaxEntries", 1000);
     if (ImGui::InputScalar("##maxEntriesInput", ImGuiDataType_S32, &maxEntries)) {
         CVarSetInteger("gEventLog.MaxEntries", MAX(0, maxEntries));
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesOnNextTick();
+        Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
         TrimEventLog();
     }
     ImGui::PopItemWidth();
@@ -350,7 +348,8 @@ void EventLogWindow::DrawElement() {
 
     ImGui::SameLine(0);
 
-    if (UIWidgets::Button("Clear", { .color = UIWidgets::Colors::Red, .size = UIWidgets::Sizes::Inline })) {
+    if (UIWidgets::Button("Clear",
+                          UIWidgets::ButtonOptions{ .color = UIWidgets::Colors::Red }.Size(UIWidgets::Sizes::Inline))) {
         eventLogEntries.clear();
     }
 

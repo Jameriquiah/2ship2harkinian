@@ -6,10 +6,9 @@
 
 #include "z_en_bal.h"
 #include "overlays/actors/ovl_En_Clear_Tag/z_en_clear_tag.h"
+#include "GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_10)
-
-#define THIS ((EnBal*)thisx)
+#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_FRIENDLY | ACTOR_FLAG_UPDATE_CULLING_DISABLED)
 
 void EnBal_Init(Actor* thisx, PlayState* play);
 void EnBal_Destroy(Actor* thisx, PlayState* play);
@@ -90,7 +89,7 @@ void EnBal_OfferGetItem(EnBal* this, PlayState* play);
 void EnBal_SetupThankYou(EnBal* this);
 void EnBal_ThankYou(EnBal* this, PlayState* play);
 
-ActorInit En_Bal_InitVars = {
+ActorProfile En_Bal_Profile = {
     /**/ ACTOR_EN_BAL,
     /**/ ACTORCAT_NPC,
     /**/ FLAGS,
@@ -142,11 +141,11 @@ static CollisionCheckInfoInit2 sColChkInfoInit = { 1, 0, 0, 0, MASS_IMMOVABLE };
 static ColliderJntSphElementInit sJntSphElementsInit[1] = {
     {
         {
-            ELEMTYPE_UNK0,
+            ELEM_MATERIAL_UNK0,
             { 0xF7CFFFFF, 0x00, 0x00 },
             { 0xF7CFFFFF, 0x00, 0x00 },
-            TOUCH_NONE | TOUCH_SFX_NORMAL,
-            BUMP_ON,
+            ATELEM_NONE | ATELEM_SFX_NORMAL,
+            ACELEM_ON,
             OCELEM_ON,
         },
         { TINGLE_LIMB_BALLOON, { { 2400, 0, 0 }, 50 }, 100 },
@@ -155,7 +154,7 @@ static ColliderJntSphElementInit sJntSphElementsInit[1] = {
 
 static ColliderJntSphInit sJntSphInit = {
     {
-        COLTYPE_NONE,
+        COL_MATERIAL_NONE,
         AT_ON | AT_TYPE_ENEMY,
         AC_ON | AC_TYPE_PLAYER,
         OC1_ON | OC1_TYPE_ALL,
@@ -193,17 +192,17 @@ static AnimationInfo sAnimationInfo[TINGLE_ANIM_MAX] = {
 };
 
 void EnBal_Init(Actor* thisx, PlayState* play) {
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
     s32 pad;
     f32 endFrame = Animation_GetLastFrame(&gTingleFloatIdleAnim);
 
     this->locationMapId = TINGLE_GET_MAP_ID(&this->picto.actor);
-    this->picto.actor.targetMode = 1;
-    this->picto.actor.uncullZoneForward = 3000.0f;
+    this->picto.actor.attentionRangeType = 1;
+    this->picto.actor.cullingVolumeDistance = 3000.0f;
     Actor_SetScale(&this->picto.actor, 0.02f);
     SkelAnime_InitFlex(play, &this->skelAnime, &gTingleSkel, &gTingleFloatIdleAnim, this->jointTable, this->morphTable,
                        TINGLE_LIMB_MAX);
-    if (gSaveContext.save.saveInfo.playerData.isMagicAcquired) {
+    if (GameInteractor_Should(VB_HAVE_MAGIC_FOR_TINGLE, gSaveContext.save.saveInfo.playerData.isMagicAcquired)) {
         Animation_Change(&this->skelAnime, &gTingleTalkAnim, 1.0f, 0.0f, endFrame, ANIMMODE_LOOP, -10.0f);
     }
     ActorShape_Init(&this->picto.actor.shape, 0.0f, ActorShadow_DrawCircle, 0.0f);
@@ -222,7 +221,7 @@ void EnBal_Init(Actor* thisx, PlayState* play) {
     CollisionCheck_SetInfo2(&this->picto.actor.colChkInfo, &sDamageTable, &sColChkInfoInit);
     Actor_UpdateBgCheckInfo(play, &this->picto.actor, 0.0f, 0.0f, 0.0f, UPDBGCHECKINFO_FLAG_4);
     this->picto.validationFunc = EnBal_ValidatePictograph;
-    if (!gSaveContext.save.saveInfo.playerData.isMagicAcquired) {
+    if (!GameInteractor_Should(VB_HAVE_MAGIC_FOR_TINGLE, gSaveContext.save.saveInfo.playerData.isMagicAcquired)) {
         this->picto.actor.world.pos.y = this->picto.actor.floorHeight;
         EnBal_SetMainColliderToHead(this);
         EnBal_SetupGroundIdle(this);
@@ -232,26 +231,26 @@ void EnBal_Init(Actor* thisx, PlayState* play) {
 }
 
 void EnBal_Destroy(Actor* thisx, PlayState* play) {
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
 
     Collider_InitJntSph(play, &this->collider);
 }
 
 void EnBal_SetMainColliderToBalloon(EnBal* this) {
-    this->collider.elements->dim.limb = TINGLE_LIMB_BALLOON;
-    this->collider.elements->dim.modelSphere.radius = 40;
-    this->collider.elements->dim.modelSphere.center.x = 2200;
+    this->collider.elements[0].dim.limb = TINGLE_LIMB_BALLOON;
+    this->collider.elements[0].dim.modelSphere.radius = 40;
+    this->collider.elements[0].dim.modelSphere.center.x = 2200;
 }
 
 void EnBal_SetMainColliderToHead(EnBal* this) {
-    this->collider.elements->dim.limb = TINGLE_LIMB_HEAD;
-    this->collider.elements->dim.modelSphere.radius = 25;
-    this->collider.elements->dim.modelSphere.center.x = 0;
+    this->collider.elements[0].dim.limb = TINGLE_LIMB_HEAD;
+    this->collider.elements[0].dim.modelSphere.radius = 25;
+    this->collider.elements[0].dim.modelSphere.center.x = 0;
 }
 
 s32 EnBal_ValidatePictograph(PlayState* play, Actor* thisx) {
     s32 pictoValid;
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
 
     pictoValid = Snap_ValidatePictograph(play, &this->picto.actor, PICTO_VALID_TINGLE, &this->picto.actor.focus.pos,
                                          &this->picto.actor.shape.rot, 10.0f, 400.0f, 0x4000);
@@ -384,7 +383,7 @@ void EnBal_Fall(EnBal* this, PlayState* play) {
         } else if (this->timer == 30) {
             Actor_ChangeAnimationByInfo(&this->skelAnime, sAnimationInfo, TINGLE_ANIM_LAND);
             this->picto.actor.shape.rot = this->picto.actor.world.rot;
-            Actor_SpawnFloorDustRing(play, &this->picto.actor, &worldPos, 10.0f, 30, 5.0f, 0, 0, 0);
+            Actor_SpawnFloorDustRing(play, &this->picto.actor, &worldPos, 10.0f, 30, 5.0f, 0, 0, false);
             this->timer++;
         } else {
             if ((play->gameplayFrames % 2) != 0) {
@@ -478,7 +477,7 @@ void EnBal_SetupGroundIdle(EnBal* this) {
 
     this->watchTarget = TINGLE_WATCH_TARGET_NONE;
     if (this->locationMapId == TINGLE_MAP_CLOCK_TOWN) {
-        if (!gSaveContext.save.saveInfo.playerData.isMagicAcquired) {
+        if (!GameInteractor_Should(VB_HAVE_MAGIC_FOR_TINGLE, gSaveContext.save.saveInfo.playerData.isMagicAcquired)) {
             // Effectively turn off reinflation timer by setting above 300
             this->timer = 301;
         } else if (this->inflateEarly == true) {
@@ -507,7 +506,7 @@ void EnBal_GroundIdle(EnBal* this, PlayState* play) {
         this->timer++;
     }
 
-    if (Actor_ProcessTalkRequest(&this->picto.actor, &play->state)) {
+    if (Actor_TalkOfferAccepted(&this->picto.actor, &play->state)) {
         this->forceEyesShut = false;
         this->eyeTexIndex = TINGLE_EYETEX_OPEN;
         if (CHECK_WEEKEVENTREG(WEEKEVENTREG_TALKED_TINGLE)) {
@@ -523,7 +522,8 @@ void EnBal_GroundIdle(EnBal* this, PlayState* play) {
                 this->textId = 0x1D05;
             }
 
-            if (!gSaveContext.save.saveInfo.playerData.isMagicAcquired) {
+            if (!GameInteractor_Should(VB_HAVE_MAGIC_FOR_TINGLE,
+                                       gSaveContext.save.saveInfo.playerData.isMagicAcquired)) {
                 // Reinflation should be unreachable while player does not have magic
                 this->inflateEarly = true;
             }
@@ -573,7 +573,7 @@ void EnBal_GroundIdle(EnBal* this, PlayState* play) {
             } else {
                 this->idleAnimStage++;
             }
-        } else if ((this->idleAnimStage == TINGLE_IDLESTAGE_WAIT) && (Animation_OnFrame(&this->skelAnime, 20.0f))) {
+        } else if ((this->idleAnimStage == TINGLE_IDLESTAGE_WAIT) && Animation_OnFrame(&this->skelAnime, 20.0f)) {
             this->forceEyesShut = true;
         }
     }
@@ -592,13 +592,13 @@ void EnBal_Talk(EnBal* this, PlayState* play) {
 
     switch (Message_GetState(&play->msgCtx)) {
         case TEXT_STATE_NONE:
-        case TEXT_STATE_1:
+        case TEXT_STATE_NEXT:
             break;
 
         case TEXT_STATE_CLOSING:
             break;
 
-        case TEXT_STATE_3:
+        case TEXT_STATE_FADING:
             if (this->textId != 0x1D10) {
                 this->isTalking = true;
             }
@@ -608,7 +608,7 @@ void EnBal_Talk(EnBal* this, PlayState* play) {
             EnBal_TryPurchaseMap(this, play);
             break;
 
-        case TEXT_STATE_5:
+        case TEXT_STATE_EVENT:
             EnBal_HandleConversation(this, play);
             break;
 
@@ -618,7 +618,7 @@ void EnBal_Talk(EnBal* this, PlayState* play) {
             }
             break;
 
-        case TEXT_STATE_10:
+        case TEXT_STATE_AWAITING_NEXT:
             if (Message_ShouldAdvance(play) && (this->textId == 0x1D08)) {
                 this->forceEyesShut = false;
                 this->eyeTexIndex = TINGLE_EYETEX_OPEN;
@@ -828,13 +828,14 @@ void EnBal_TryPurchaseMap(EnBal* this, PlayState* play) {
                 price = play->msgCtx.unk12070;
             }
 
-            if (gSaveContext.save.saveInfo.playerData.rupees < price) {
+            if (GameInteractor_Should(VB_NOT_AFFORD_TINGLE_MAP, gSaveContext.save.saveInfo.playerData.rupees < price,
+                                      this, &price)) {
                 // Can't buy map because player doesn't have the money
                 Audio_PlaySfx(NA_SE_SY_ERROR);
                 Actor_ChangeAnimationByInfo(&this->skelAnime, sAnimationInfo, TINGLE_ANIM_TALK);
                 Message_StartTextbox(play, 0x1D0A, &this->picto.actor);
                 this->textId = 0x1D0A;
-            } else if (EnBal_CheckIfMapUnlocked(this, play)) {
+            } else if (GameInteractor_Should(VB_ALREADY_HAVE_TINGLE_MAP, EnBal_CheckIfMapUnlocked(this, play), this)) {
                 // Can't buy map because player already has it
                 Audio_PlaySfx(NA_SE_SY_ERROR);
                 Actor_ChangeAnimationByInfo(&this->skelAnime, sAnimationInfo, TINGLE_ANIM_TALK);
@@ -846,11 +847,13 @@ void EnBal_TryPurchaseMap(EnBal* this, PlayState* play) {
                 Rupees_ChangeBy(-price);
                 Actor_ChangeAnimationByInfo(&this->skelAnime, sAnimationInfo, TINGLE_ANIM_MAGIC_REVERSE);
                 this->forceEyesShut = true;
-                Message_StartTextbox(play, 0x1D0B, &this->picto.actor);
-                this->textId = 0x1D0B;
-                EnBal_UnlockSelectedAreaMap(this);
-                player->stateFlags1 |= PLAYER_STATE1_20;
-                EnBal_SetupOfferGetItem(this);
+                if (GameInteractor_Should(VB_TINGLE_GIVE_MAP_UNLOCK, true, this)) {
+                    Message_StartTextbox(play, 0x1D0B, &this->picto.actor);
+                    this->textId = 0x1D0B;
+                    EnBal_UnlockSelectedAreaMap(this);
+                    player->stateFlags1 |= PLAYER_STATE1_20;
+                    EnBal_SetupOfferGetItem(this);
+                }
             }
         } else {
             // Cancel
@@ -986,7 +989,7 @@ void EnBal_SetupOfferGetItem(EnBal* this) {
 void EnBal_OfferGetItem(EnBal* this, PlayState* play) {
     GetItemId mapGetItemId;
 
-    if ((Message_GetState(&play->msgCtx) == TEXT_STATE_5) && Message_ShouldAdvance(play)) {
+    if ((Message_GetState(&play->msgCtx) == TEXT_STATE_EVENT) && Message_ShouldAdvance(play)) {
         Message_CloseTextbox(play);
         sGetItemPending = true;
     }
@@ -1036,14 +1039,14 @@ void EnBal_SetupThankYou(EnBal* this) {
 void EnBal_ThankYou(EnBal* this, PlayState* play) {
     Player* player = GET_PLAYER(play);
 
-    if (Actor_ProcessTalkRequest(&this->picto.actor, &play->state)) {
+    if (Actor_TalkOfferAccepted(&this->picto.actor, &play->state)) {
         player->stateFlags1 &= ~PLAYER_STATE1_20;
         Actor_ChangeAnimationByInfo(&this->skelAnime, sAnimationInfo, TINGLE_ANIM_TWIST);
         this->forceEyesShut = false;
         this->eyeTexIndex = TINGLE_EYETEX_OPEN;
         Message_StartTextbox(play, 0x1D17, &this->picto.actor);
         this->textId = 0x1D17;
-        this->picto.actor.flags &= ~ACTOR_FLAG_10000;
+        this->picto.actor.flags &= ~ACTOR_FLAG_TALK_OFFER_AUTO_ACCEPTED;
         EnBal_SetupTalk(this);
     } else {
         Actor_OfferTalkExchangeEquiCylinder(&this->picto.actor, play, 200.0f, PLAYER_IA_MINUS1);
@@ -1102,7 +1105,7 @@ void EnBal_TryBalloonPopped(EnBal* this, PlayState* play) {
 }
 
 void EnBal_Update(Actor* thisx, PlayState* play) {
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
 
     this->actionFunc(this, play);
     EnBal_TryBalloonPopped(this, play);
@@ -1122,7 +1125,7 @@ void EnBal_Update(Actor* thisx, PlayState* play) {
 }
 
 s32 EnBal_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* pos, Vec3s* rot, Actor* thisx) {
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
     Vec3s balloonRot;
 
     if (limbIndex == TINGLE_LIMB_BALLOON) {
@@ -1152,7 +1155,7 @@ s32 EnBal_OverrideLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3f* p
 }
 
 void EnBal_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* rot, Actor* thisx) {
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
 
     Collider_UpdateSpheres(limbIndex, &this->collider);
     if (limbIndex == TINGLE_LIMB_HEAD) {
@@ -1161,12 +1164,12 @@ void EnBal_PostLimbDraw(PlayState* play, s32 limbIndex, Gfx** dList, Vec3s* rot,
 }
 
 void EnBal_Draw(Actor* thisx, PlayState* play) {
-    EnBal* this = THIS;
+    EnBal* this = (EnBal*)thisx;
 
     OPEN_DISPS(play->state.gfxCtx);
 
     Gfx_SetupDL25_Opa(play->state.gfxCtx);
-    gSPSegment(POLY_OPA_DISP++, 8, SEGMENTED_TO_K0(sEyeTextures[this->eyeTexIndex]));
+    gSPSegment(POLY_OPA_DISP++, 0x08, SEGMENTED_TO_K0(sEyeTextures[this->eyeTexIndex]));
     SkelAnime_DrawFlexOpa(play, this->skelAnime.skeleton, this->skelAnime.jointTable, this->skelAnime.dListCount,
                           EnBal_OverrideLimbDraw, EnBal_PostLimbDraw, &this->picto.actor);
 

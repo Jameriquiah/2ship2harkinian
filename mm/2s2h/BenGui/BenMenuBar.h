@@ -1,13 +1,7 @@
 #ifndef BenMenuBar_h
 #define BenMenuBar_h
 
-#include "window/gui/GuiMenuBar.h"
-#include "window/gui/GuiElement.h"
-#include "DeveloperTools/SaveEditor.h"
-#include "DeveloperTools/ActorViewer.h"
-#include "DeveloperTools/CollisionViewer.h"
-#include "DeveloperTools/EventLog.h"
-#include "BenInputEditorWindow.h"
+#include <ship/window/gui/GuiMenuBar.h>
 
 namespace BenGui {
 class BenMenuBar : public Ship::GuiMenuBar {

@@ -1,6 +1,9 @@
 #include "global.h"
+#include "z64voice.h"
 
-#include "2s2h/GameInteractor/GameInteractor.h"
+#include "GameInteractor/GameInteractor.h"
+#include "2s2h/Enhancements/Audio/AudioEditor.h"
+#include <libultraship/bridge/consolevariablebridge.h>
 
 typedef struct {
     /* 0x0 */ s8 x;
@@ -130,7 +133,7 @@ u8 sAudioPauseState;
 u8 sSpatialSeqIsActive[4];
 u8 sSequenceFilter[8 * 4];
 u8 sIsFinalHoursOrSoaring;
-u8 sObjSoundFanfareSeqId;
+u16 sObjSoundFanfareSeqId;
 u8 sObjSoundFanfareRequested;
 Vec3f sObjSoundFanfarePos;
 u8 sObjSoundPlayerIndex;
@@ -143,7 +146,7 @@ f32 sObjSoundMinVol;
 Vec3f sSpatialSeqNoFilterPos;
 Vec3f sSpatialSeqFilterPos;
 f32 sSpatialSeqMaxDist;
-u8 sSpatialSeqSeqId;
+u16 sSpatialSeqSeqId;
 u8 sSpatialSeqFlags;
 u8 D_801FD432;
 u8 sSpatialSubBgmFadeTimer;
@@ -233,7 +236,7 @@ u16 sPrevMainBgmSeqId = NA_BGM_DISABLED;
 
 #define SEQ_RESUME_POINT_NONE 0xC0
 u8 sSeqResumePoint = 0;
-u8 sPrevSceneSeqId = NA_BGM_GENERAL_SFX;
+u16 sPrevSceneSeqId = NA_BGM_GENERAL_SFX;
 
 u32 sNumFramesStill = 0;
 u32 sNumFramesMoving = 0;
@@ -244,7 +247,7 @@ u8 sAudioExtraFilter2 = 0;
 s8 gUnderwaterSfxReverbAdd = 0;
 Vec3f* sRiverSoundBgmPos = NULL;
 f32 sRiverSoundXZDistToPlayer = 2000.0f;
-u8 sObjSoundMainBgmSeqId = NA_BGM_GENERAL_SFX;
+u16 sObjSoundMainBgmSeqId = NA_BGM_GENERAL_SFX;
 
 // Weights distance strongest by depth (z), weaker by left/right screen (x), and weakest by top/bottom screen (y)
 #define SEQ_SCREEN_WEIGHTED_DIST(projectedPos) \
@@ -2080,6 +2083,9 @@ void AudioOcarina_ReadControllerInput(void) {
     sOcarinaInputButtonPrev = ocarinaInputButtonPrev;
     sOcarinaInputStickRel.x = input->rel.stick_x;
     sOcarinaInputStickRel.y = input->rel.stick_y;
+
+    // 2S2H [Enhancement] Apply right stick ocarina input via GameInteractor
+    sOcarinaInputButtonCur |= GameInteractor_RightStickOcarina(input);
 }
 
 /**
@@ -2642,7 +2648,7 @@ void AudioOcarina_PlayControllerInput(u8 isOcarinaSfxSuppressedWhenCancelled) {
             sCurOcarinaButtonIndex = OCARINA_BTN_C_UP;
         }
 
-        if (sOcarinaInputButtonCur) {}
+        if (GameInteractor_Should(VB_PLAY_OCARINA_NOTE, true, &sCurOcarinaButtonIndex, &sCurOcarinaPitch)) {}
 
         // Pressing the R Button will raise the pitch by 1 semitone
         if ((sCurOcarinaPitch != OCARINA_PITCH_NONE) && CHECK_BTN_ANY(sOcarinaInputButtonCur, BTN_R) &&
@@ -2760,6 +2766,14 @@ void AudioOcarina_SetOcarinaDisableTimer(u8 unused, u8 timer) {
 
 void AudioOcarina_SetInstrument(u8 ocarinaInstrumentId) {
     if ((sOcarinaInstrumentId != ocarinaInstrumentId) || (ocarinaInstrumentId == OCARINA_INSTRUMENT_DEFAULT)) {
+        // #region 2S2H [Port] Custom Sequnces
+        u16 sfxEditorId = ocarinaInstrumentId + 0x81;
+        u16 neSeq = AudioEditor_GetReplacementSeq(sfxEditorId);
+        if (neSeq != sfxEditorId) {
+            gAudioCtx.seqReplaced[SEQ_PLAYER_SFX] = 1;
+            ocarinaInstrumentId = neSeq - 0x81;
+        }
+        // #end region
         SEQCMD_SET_CHANNEL_IO(SEQ_PLAYER_SFX, SFX_CHANNEL_OCARINA, 1, ocarinaInstrumentId);
         sOcarinaInstrumentId = ocarinaInstrumentId;
 
@@ -3641,7 +3655,7 @@ void Audio_Update(void) {
     if ((AudioSeq_UpdateAudioHeapReset() == 0) && !AudioSeq_ResetReverb()) {
         AudioOcarina_SetCustomSequence();
         AudioOcarina_Update();
-        func_801A5118();
+        AudioVoice_Update();
         Audio_StepFreqLerp(&sRiverFreqScaleLerp);
         Audio_StepFreqLerp(&sWaterfallFreqScaleLerp);
         Audio_UpdateRiverSoundVolumes();
@@ -3674,8 +3688,8 @@ void Audio_Noop5(UNK_TYPE arg0, UNK_TYPE arg1) {
  * Skips the external audio command process
  * Unused
  */
-void Audio_PlayMainBgm(s8 seqId) {
-    AUDIOCMD_GLOBAL_INIT_SEQPLAYER(SEQ_PLAYER_BGM_MAIN, (u8)seqId, 1);
+void Audio_PlayMainBgm(s16 seqId) {
+    AUDIOCMD_GLOBAL_INIT_SEQPLAYER(SEQ_PLAYER_BGM_MAIN, seqId, 1);
 }
 
 f32 AudioSfx_ComputeVolume(u8 bankId, u8 entryIndex) {
@@ -4047,6 +4061,7 @@ void AudioSfx_SetProperties(u8 bankId, u8 entryIndex, u8 channelIndex) {
                           2);
                 filter &= 0xFF;
             } else if ((sSoundMode == SOUNDMODE_SURROUND_EXTERNAL) && !(entry->sfxParams & SFX_FLAG_VOLUME_NO_DIST)) {
+                // BENTODO look into this
                 filter = AudioSfx_ComputeSurroundSoundFilter(behindScreenZ, entry, panSigned);
             }
             break;
@@ -4574,8 +4589,9 @@ void Audio_SetBgmVolumeOn(void) {
     AudioSeq_SetVolumeScale(SEQ_PLAYER_BGM_SUB, VOL_SCALE_INDEX_FANFARE, 0x7F, 3);
 }
 
-void func_801A0204(s8 seqId) {
-    AUDIOCMD_SEQPLAYER_SET_IO(SEQ_PLAYER_BGM_MAIN, 2, (u8)seqId);
+// 2S2H [Custom Audio] seqId was s8. Updated to allow more than 255 sequences
+void func_801A0204(s16 seqId) {
+    AUDIOCMD_SEQPLAYER_SET_IO(SEQ_PLAYER_BGM_MAIN, 2, seqId);
 }
 
 void Audio_SetMainBgmVolume(u8 targetVolume, u8 volumeFadeTimer) {
@@ -5011,7 +5027,8 @@ void Audio_SetObjSoundProperties(u8 seqPlayerIndex, Vec3f* pos, s16 flags, f32 m
     sObjSoundMinVol = minVolume;
 }
 
-void Audio_StartObjSoundFanfare(u8 seqPlayerIndex, Vec3f* pos, s8 seqId, u16 seqIdOffset) {
+// 2S2H [Custom Audio] Arg 3 was s8 seqId. Allow more that 255 sequences. Various casts removed in the function
+void Audio_StartObjSoundFanfare(u8 seqPlayerIndex, Vec3f* pos, s16 seqId, u16 seqIdOffset) {
     s32 pad[3];
     u32 mask;
 
@@ -5021,7 +5038,7 @@ void Audio_StartObjSoundFanfare(u8 seqPlayerIndex, Vec3f* pos, s8 seqId, u16 seq
         sIsFinalHoursOrSoaring) {
         sIsFinalHoursOrSoaring = true;
     } else if (pos != NULL) {
-        if ((seqId != (s8)(AudioSeq_GetActiveSeqId(seqPlayerIndex) & 0xFFFF)) &&
+        if ((seqId != AudioSeq_GetActiveSeqId(seqPlayerIndex) & 0xFFFF) &&
             !gAudioCtx.seqPlayers[seqPlayerIndex].enabled && (sObjSoundMainBgmSeqId == NA_BGM_GENERAL_SFX)) {
 
             mask = 0xFFFF;
@@ -5037,7 +5054,8 @@ void Audio_StartObjSoundFanfare(u8 seqPlayerIndex, Vec3f* pos, s8 seqId, u16 seq
     }
 }
 
-void Audio_PlayObjSoundBgm(Vec3f* pos, s8 seqId) {
+// 2S2H [Custom Audio] Arg 2 was s8 seqId. Allow more that 255 sequences. Various casts removed in the function
+void Audio_PlayObjSoundBgm(Vec3f* pos, s16 seqId) {
     s32 pad[2];
     u16 sp36;
     s32 sp2C;
@@ -5059,17 +5077,25 @@ void Audio_PlayObjSoundBgm(Vec3f* pos, s8 seqId) {
     if (pos != NULL) {
         if (seqId == NA_BGM_ASTRAL_OBSERVATORY) {
 
-            if ((seqId != (u8)(seqId0 & 0xFF)) && !sAllPlayersMutedExceptSystemAndOcarina) {
-                SEQCMD_PLAY_SEQUENCE(SEQ_PLAYER_BGM_MAIN, 0, (u16)seqId);
+            if ((seqId != seqId0) && !sAllPlayersMutedExceptSystemAndOcarina) {
+                SEQCMD_PLAY_SEQUENCE(SEQ_PLAYER_BGM_MAIN, 0, seqId);
                 sObjSoundMainBgmSeqId = seqId;
-            } else if ((seqId == (u8)(seqId0 & 0xFF)) && (sObjSoundMainBgmSeqId == NA_BGM_GENERAL_SFX)) {
+            } else if ((seqId == seqId0) && (sObjSoundMainBgmSeqId == NA_BGM_GENERAL_SFX)) {
                 sObjSoundMainBgmSeqId = seqId;
             }
 
             Audio_SetObjSoundProperties(SEQ_PLAYER_BGM_MAIN, pos, 0x20, 100.0f, 1500.0f, 0.9f, 0.0f);
         } else {
             if (sObjSoundMainBgmSeqId == NA_BGM_GENERAL_SFX) {
-                temp_a0 = ((((AudioThread_NextRandom() % 30) & 0xFF) + 1) << 0x10) | ((u16)seqId + 0x7F00);
+                // 2S2H [Custom Audio] was originally `seqId + 7F00` This value did not work with the bit packing done
+                // for 16 bit seqIds.
+                /*
+                 *  0x7F00 -> 0b0111 1111 0000 0000
+                 *  0x7800 -> 0b0111 1000 0000 0000
+                 *  0x07FF -> 0b0000 0111 1111 1111
+                 *  The 7F00 mask will erase the top bits of the sequence id.
+                 */
+                temp_a0 = ((((AudioThread_NextRandom() % 30) & 0xFF) + 1) << 0x10) | (seqId + 0x7800);
                 SEQCMD_PLAY_SEQUENCE(SEQ_PLAYER_BGM_MAIN, 0, temp_a0);
                 sObjSoundMainBgmSeqId = seqId;
             }
@@ -5095,7 +5121,8 @@ void Audio_PlayObjSoundBgm(Vec3f* pos, s8 seqId) {
     }
 }
 
-void Audio_PlayObjSoundFanfare(Vec3f* pos, s8 seqId) {
+// 2S2H [Custom Audio] Arg 2 was s8 seqId. Allow more that 255 sequences. Various casts removed in the function
+void Audio_PlayObjSoundFanfare(Vec3f* pos, s16 seqId) {
     s32 requestFanfare = false;
     s32 pad;
 
@@ -5204,7 +5231,7 @@ void Audio_StartSubBgmAtPos(u8 seqPlayerIndex, Vec3f* projectedPos, u8 seqId, u8
  * sSpatialSeqNoFilterPos takes priority over sSpatialSeqFilterPos
  * Used only by guru guru for song of storms
  */
-void Audio_PlaySubBgmAtPos(Vec3f* pos, u8 seqId, f32 maxDist) {
+void Audio_PlaySubBgmAtPos(Vec3f* pos, u16 seqId, f32 maxDist) {
     if (gAudioSpecId != 0xC) {
         sSpatialSeqNoFilterPos.x = pos->x;
         sSpatialSeqNoFilterPos.y = pos->y;
@@ -5216,8 +5243,9 @@ void Audio_PlaySubBgmAtPos(Vec3f* pos, u8 seqId, f32 maxDist) {
     }
 }
 
+// 2S2H [Custom Audio] Arg 2 was s8 seqId. Allow more that 255 sequences. Various casts removed in the function
 // Used only by guru guru for song of storms in stock pot from hallway or neighboring room
-void Audio_PlaySubBgmAtPosWithFilter(Vec3f* pos, u8 seqId, f32 maxDist) {
+void Audio_PlaySubBgmAtPosWithFilter(Vec3f* pos, u16 seqId, f32 maxDist) {
     sSpatialSeqFilterPos.x = pos->x;
     sSpatialSeqFilterPos.y = pos->y;
     sSpatialSeqFilterPos.z = pos->z;
@@ -5436,6 +5464,10 @@ void Audio_StartMorningSceneSequence(u16 seqId) {
 }
 
 void Audio_PlaySceneSequence(u16 seqId, u8 dayMinusOne) {
+    if (GameInteractor_Should(VB_PLAY_SCENE_SEQUENCE, false, &sRequestedSceneSeqId, &sPrevMainBgmSeqId, &seqId)) {
+        return;
+    }
+
     if (sRequestedSceneSeqId != seqId) {
         if (seqId == NA_BGM_AMBIENCE) {
             Audio_PlayAmbience(AMBIENCE_ID_08);
@@ -5450,6 +5482,7 @@ void Audio_PlaySceneSequence(u16 seqId, u8 dayMinusOne) {
 void Audio_StartSceneSequence(u16 seqId) {
     u8 fadeInDuration = 0;
     u8 skipHarpIntro;
+    seqId = AudioEditor_GetOriginalSeq(seqId);
 
     if ((sSeqFlags[sPrevSceneSeqId] & SEQ_FLAG_RESUME_PREV) && (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_RESUME)) {
         // Resume the sequence from the point where it left off last time it was played in the scene
@@ -5482,8 +5515,9 @@ void Audio_StartSceneSequence(u16 seqId) {
 
 void Audio_UpdateSceneSequenceResumePoint(void) {
     u16 seqId = AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
+    seqId = AudioEditor_GetOriginalSeq(seqId);
 
-    if ((seqId != NA_BGM_DISABLED) && (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_RESUME)) {
+    if ((seqId != NA_BGM_DISABLED) && (sSeqFlags[seqId] & SEQ_FLAG_RESUME)) {
         if (sSeqResumePoint != SEQ_RESUME_POINT_NONE) {
             // Get the current point to resume from
             sSeqResumePoint = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqScriptIO[3];
@@ -5545,13 +5579,15 @@ void Audio_IncreaseTempoForTimedMinigame(void) {
         SEQCMD_SET_TEMPO(SEQ_PLAYER_BGM_MAIN, 5, 210);
     }
 }
-
+// 2S2H [Custom audio] The &0xFF wasn't hurting anything because by default the original sequence IDs will never exceed
+// 127
 void Audio_PlaySequenceInCutscene(u16 seqId) {
-    if (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_FANFARE) {
+    seqId = AudioEditor_GetOriginalSeq(seqId);
+    if (sSeqFlags[seqId] & SEQ_FLAG_FANFARE) {
         Audio_PlayFanfare(seqId);
-    } else if (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_FANFARE_KAMARO) {
+    } else if (sSeqFlags[seqId] & SEQ_FLAG_FANFARE_KAMARO) {
         SEQCMD_PLAY_SEQUENCE(SEQ_PLAYER_FANFARE, 0, seqId);
-    } else if (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_NO_AMBIENCE) {
+    } else if (sSeqFlags[seqId] & SEQ_FLAG_NO_AMBIENCE) {
         SEQCMD_PLAY_SEQUENCE(SEQ_PLAYER_BGM_SUB, 0, seqId);
     } else {
         Audio_PlaySequenceWithSeqPlayerIO(SEQ_PLAYER_BGM_MAIN, seqId, 0, 7, SEQ_IO_VAL_NONE);
@@ -5562,23 +5598,26 @@ void Audio_PlaySequenceInCutscene(u16 seqId) {
 }
 
 void Audio_StopSequenceInCutscene(u16 seqId) {
-    if (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_FANFARE) {
+    seqId = AudioEditor_GetOriginalSeq(seqId);
+    if (sSeqFlags[seqId] & SEQ_FLAG_FANFARE) {
         SEQCMD_STOP_SEQUENCE(SEQ_PLAYER_FANFARE, 0);
-    } else if (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_FANFARE_KAMARO) {
+    } else if (sSeqFlags[seqId] & SEQ_FLAG_FANFARE_KAMARO) {
         SEQCMD_STOP_SEQUENCE(SEQ_PLAYER_FANFARE, 0);
-    } else if (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_NO_AMBIENCE) {
+    } else if (sSeqFlags[seqId] & SEQ_FLAG_NO_AMBIENCE) {
         SEQCMD_STOP_SEQUENCE(SEQ_PLAYER_BGM_SUB, 0);
     } else {
         SEQCMD_STOP_SEQUENCE(SEQ_PLAYER_BGM_MAIN, 0);
     }
 }
 
-s32 Audio_IsSequencePlaying(u8 seqId) {
+s32 Audio_IsSequencePlaying(u16 seqId) {
+    u16 origSeqId = AudioEditor_GetOriginalSeq(seqId);
+
     u8 seqPlayerIndex = SEQ_PLAYER_BGM_MAIN;
 
-    if (sSeqFlags[seqId & 0xFF] & SEQ_FLAG_FANFARE) {
+    if (sSeqFlags[origSeqId] & SEQ_FLAG_FANFARE) {
         seqPlayerIndex = SEQ_PLAYER_FANFARE;
-    } else if (sSeqFlags[seqId & 0xFF] & SEQ_FLAG_FANFARE_KAMARO) {
+    } else if (sSeqFlags[origSeqId] & SEQ_FLAG_FANFARE_KAMARO) {
         seqPlayerIndex = SEQ_PLAYER_FANFARE;
     }
 
@@ -5591,7 +5630,7 @@ s32 Audio_IsSequencePlaying(u8 seqId) {
 
 void Audio_PlayBgm_StorePrevBgm(u16 seqId) {
     u16 curSeqId = AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
-
+    u64 origSeqId = AudioEditor_GetOriginalSeq(curSeqId);
     if (curSeqId == NA_BGM_DISABLED) {
         curSeqId = NA_BGM_GENERAL_SFX;
     }
@@ -5600,7 +5639,7 @@ void Audio_PlayBgm_StorePrevBgm(u16 seqId) {
         Audio_SetSequenceMode(SEQ_MODE_IGNORE);
 
         // Ensure the sequence about to be stored isn't also storing a separate sequence
-        if (!(sSeqFlags[curSeqId] & SEQ_FLAG_RESTORE)) {
+        if (!(sSeqFlags[origSeqId] & SEQ_FLAG_RESTORE)) {
             sPrevMainBgmSeqId = curSeqId;
         }
 
@@ -5667,8 +5706,10 @@ void Audio_PlayFanfare(u16 seqId) {
     u8 fontBuff[16];
     u16 prevSeqId = AudioSeq_GetActiveSeqId(SEQ_PLAYER_FANFARE);
     u32 outNumFonts;
-    u8* prevFontId = AudioThread_GetFontsForSequence(prevSeqId & 0xFF, &outNumFonts, prevFontBuff);
-    u8* fontId = AudioThread_GetFontsForSequence(seqId & 0xFF, &outNumFonts, fontBuff);
+    // 2S2H [Custom Audio] `prevSeqId` and `seqId` had a `& 0xFF`. This was likely OK because we always load soundFonts
+    // but it was removed anyway just in case.
+    u8* prevFontId = AudioThread_GetFontsForSequence(prevSeqId, &outNumFonts, prevFontBuff);
+    u8* fontId = AudioThread_GetFontsForSequence(seqId, &outNumFonts, fontBuff);
     // BENTODO
     // #region 2S2H [Audio] TODO: Fixes fanfare crash, should/can be removed after audio is done
     // if ((prevSeqId == NA_BGM_DISABLED) || (*prevFontId == *fontId)) {
@@ -5735,17 +5776,13 @@ void Audio_SetSequenceMode(u8 seqMode) {
         // clang-format on
 
         seqId = gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId;
-
-        if ((seqId == NA_BGM_DISABLED) || (sSeqFlags[(u8)(seqId & 0xFF)] & SEQ_FLAG_ENEMY) ||
+        seqId = AudioEditor_GetOriginalSeq(seqId);
+        if ((seqId == NA_BGM_DISABLED) || (sSeqFlags[seqId] & SEQ_FLAG_ENEMY) ||
             ((sPrevSeqMode & 0x7F) == SEQ_MODE_ENEMY)) {
             if (seqMode != (sPrevSeqMode & 0x7F)) {
                 if (seqMode == SEQ_MODE_ENEMY) {
                     // If only seqMode = SEQ_MODE_ENEMY (Start)
-                    if (gActiveSeqs[SEQ_PLAYER_BGM_SUB].volScales[1] - sBgmEnemyVolume < 0) {
-                        volumeFadeInTimer = -(gActiveSeqs[SEQ_PLAYER_BGM_SUB].volScales[1] - sBgmEnemyVolume);
-                    } else {
-                        volumeFadeInTimer = gActiveSeqs[SEQ_PLAYER_BGM_SUB].volScales[1] - sBgmEnemyVolume;
-                    }
+                    volumeFadeInTimer = ABS_ALT(gActiveSeqs[SEQ_PLAYER_BGM_SUB].volScales[1] - sBgmEnemyVolume);
 
                     AudioSeq_SetVolumeScale(SEQ_PLAYER_BGM_SUB, VOL_SCALE_INDEX_BGM_SUB, sBgmEnemyVolume,
                                             volumeFadeInTimer);
@@ -5775,7 +5812,7 @@ void Audio_SetSequenceMode(u8 seqMode) {
                 if (seqMode == SEQ_MODE_ENEMY) {
                     // If both seqMode = sPrevSeqMode = SEQ_MODE_ENEMY
                     if ((AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_SUB) == NA_BGM_DISABLED) &&
-                        (seqId != NA_BGM_DISABLED) && (sSeqFlags[seqId & 0xFF & 0xFF] & SEQ_FLAG_ENEMY)) {
+                        (seqId != NA_BGM_DISABLED) && (sSeqFlags[seqId] & SEQ_FLAG_ENEMY)) {
                         SEQCMD_PLAY_SEQUENCE(SEQ_PLAYER_BGM_SUB, 10, NA_BGM_ENEMY | 0x800);
                         sPrevSeqMode = seqMode + 0x80;
                     }
@@ -5805,7 +5842,7 @@ void Audio_SetSequenceMode(u8 seqMode) {
 
 void Audio_UpdateEnemyBgmVolume(f32 dist) {
     f32 adjDist;
-    u16 seqId = gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId;
+    u16 seqId = AudioEditor_GetOriginalSeq(gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId);
 
     if (sPrevSeqMode == (SEQ_MODE_ENEMY | 0x80)) {
         if (dist != sBgmEnemyDist) {
@@ -6402,7 +6439,8 @@ void Audio_PlayAmbience(u8 ambienceId) {
     u8 ioData;
 
     if (!((gActiveSeqs[SEQ_PLAYER_AMBIENCE].seqId != NA_BGM_DISABLED) &&
-          (sSeqFlags[gActiveSeqs[SEQ_PLAYER_AMBIENCE].seqId & 0xFF & 0xFF] & SEQ_FLAG_NO_AMBIENCE))) {
+          (sSeqFlags[AudioEditor_GetOriginalSeq(gActiveSeqs[SEQ_PLAYER_AMBIENCE].seqId) & 0xFF & 0xFF] &
+           SEQ_FLAG_NO_AMBIENCE))) {
         if (gActiveSeqs[SEQ_PLAYER_AMBIENCE].seqId != NA_BGM_AMBIENCE) {
             sPrevAmbienceSeqId = gActiveSeqs[SEQ_PLAYER_AMBIENCE].seqId;
         }
@@ -6492,7 +6530,7 @@ void Audio_ResetForAudioHeapStep1(s32 specId) {
     AudioSfx_ResetSfxChannelState();
     AudioSeq_ResetActiveSequences();
     AudioSfx_Reset();
-    func_801A4FD8();
+    AudioVoice_ResetWord();
     if (gAudioSpecId == 0xB) {
         AudioSfx_MuteBanks((1 << BANK_PLAYER) | (1 << BANK_ITEM) | (1 << BANK_ENV) | (1 << BANK_ENEMY) |
                            (1 << BANK_OCARINA) | (1 << BANK_VOICE));
@@ -6505,5 +6543,5 @@ void Audio_UnusedReset(void) {
     Audio_ResetData();
     AudioSfx_ResetSfxChannelState();
     AudioSfx_Init(1);
-    func_801A4FD8();
+    AudioVoice_ResetWord();
 }

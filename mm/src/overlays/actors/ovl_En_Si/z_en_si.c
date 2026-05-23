@@ -5,10 +5,9 @@
  */
 
 #include "z_en_si.h"
+#include "2s2h/GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_TARGETABLE | ACTOR_FLAG_200)
-
-#define THIS ((EnSi*)thisx)
+#define FLAGS (ACTOR_FLAG_ATTENTION_ENABLED | ACTOR_FLAG_HOOKSHOT_PULLS_ACTOR)
 
 void EnSi_Init(Actor* thisx, PlayState* play);
 void EnSi_Destroy(Actor* thisx, PlayState* play);
@@ -17,7 +16,7 @@ void EnSi_Draw(Actor* thisx, PlayState* play);
 
 void EnSi_DraggedByHookshot(EnSi* this, PlayState* play);
 
-ActorInit En_Si_InitVars = {
+ActorProfile En_Si_Profile = {
     /**/ ACTOR_EN_SI,
     /**/ ACTORCAT_ITEMACTION,
     /**/ FLAGS,
@@ -31,7 +30,7 @@ ActorInit En_Si_InitVars = {
 
 static ColliderSphereInit sSphereInit = {
     {
-        COLTYPE_NONE,
+        COL_MATERIAL_NONE,
         AT_NONE,
         AC_ON | AC_TYPE_PLAYER,
         OC1_ON | OC1_NO_PUSH | OC1_TYPE_ALL,
@@ -39,11 +38,11 @@ static ColliderSphereInit sSphereInit = {
         COLSHAPE_SPHERE,
     },
     {
-        ELEMTYPE_UNK0,
+        ELEM_MATERIAL_UNK0,
         { 0xF7CFFFFF, 0x00, 0x00 },
         { 0xF7CFFFFF, 0x00, 0x00 },
-        TOUCH_ON | TOUCH_SFX_NORMAL,
-        BUMP_ON | BUMP_HOOKABLE,
+        ATELEM_ON | ATELEM_SFX_NORMAL,
+        ACELEM_ON | ACELEM_HOOKABLE,
         OCELEM_ON,
     },
     { 0, { { 0, 0, 0 }, 10 }, 100 },
@@ -103,10 +102,17 @@ void EnSi_GiveToken(EnSi* this, PlayState* play) {
     if ((chestFlag < 0x20) && (chestFlag >= 0)) {
         Flags_SetTreasure(play, chestFlag);
     }
+
+    if (!GameInteractor_Should(VB_GIVE_ITEM_FROM_SI, true, this)) {
+        return;
+    }
+
     Item_Give(play, ITEM_SKULL_TOKEN);
     if (Inventory_GetSkullTokenCount(play->sceneId) >= SPIDER_HOUSE_TOKENS_REQUIRED) {
         Message_StartTextbox(play, 0xFC, NULL); // You collected all tokens, curse lifted
-        Audio_PlayFanfare(NA_BGM_GET_ITEM | 0x900);
+        // BENTODO This had | 0x900 which interfered with the 16 bit sequence IDs. Removing it doesn't seem to
+        // anything bad.
+        Audio_PlayFanfare(NA_BGM_GET_ITEM);
     } else {
         Message_StartTextbox(play, 0x52, NULL); // You got one more gold token, your [count] one!
         Audio_PlayFanfare(NA_BGM_GET_SMALL_ITEM);
@@ -114,7 +120,7 @@ void EnSi_GiveToken(EnSi* this, PlayState* play) {
 }
 
 void EnSi_Wait(EnSi* this, PlayState* play) {
-    if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_2000)) {
+    if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_HOOKSHOT_ATTACHED)) {
         this->actionFunc = EnSi_DraggedByHookshot;
     } else if (this->collider.base.ocFlags2 & OC2_HIT_PLAYER) {
         EnSi_GiveToken(this, play);
@@ -125,14 +131,14 @@ void EnSi_Wait(EnSi* this, PlayState* play) {
 }
 
 void EnSi_DraggedByHookshot(EnSi* this, PlayState* play) {
-    if (!CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_2000)) {
+    if (!CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_HOOKSHOT_ATTACHED)) {
         EnSi_GiveToken(this, play);
         Actor_Kill(&this->actor);
     }
 }
 
 void EnSi_Init(Actor* thisx, PlayState* play) {
-    EnSi* this = THIS;
+    EnSi* this = (EnSi*)thisx;
 
     Collider_InitSphere(play, &this->collider);
     Collider_SetSphere(play, &this->collider, &this->actor, &sSphereInit);
@@ -142,13 +148,13 @@ void EnSi_Init(Actor* thisx, PlayState* play) {
 }
 
 void EnSi_Destroy(Actor* thisx, PlayState* play) {
-    EnSi* this = THIS;
+    EnSi* this = (EnSi*)thisx;
 
     Collider_DestroySphere(play, &this->collider);
 }
 
 void EnSi_Update(Actor* thisx, PlayState* play) {
-    EnSi* this = THIS;
+    EnSi* this = (EnSi*)thisx;
 
     this->actionFunc(this, play);
     EnSi_UpdateCollision(this, play);
@@ -156,7 +162,7 @@ void EnSi_Update(Actor* thisx, PlayState* play) {
 }
 
 void EnSi_Draw(Actor* thisx, PlayState* play) {
-    EnSi* this = THIS;
+    EnSi* this = (EnSi*)thisx;
 
     func_800B8118(&this->actor, play, 0);
     func_800B8050(&this->actor, play, 0);

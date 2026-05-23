@@ -13,7 +13,8 @@ void AudioHeap_ApplySampleBankCacheInternal(s32 apply, s32 sampleBankId);
 void AudioHeap_DiscardSampleBanks(void);
 void AudioHeap_InitReverb(s32 reverbIndex, ReverbSettings* settings, s32 isFirstInit);
 
-extern size_t gSequenceToResourceSize;
+extern size_t gSequenceMapSize;
+extern size_t gFontMapSize;
 
 #define gTatumsPerBeat (gAudioTatumInit[1])
 
@@ -56,7 +57,7 @@ void AudioHeap_InitAdsrDecayTable(void) {
 void AudioHeap_ResetLoadStatus(void) {
     s32 i;
 
-    for (i = 0; i < ARRAY_COUNT(gAudioCtx.fontLoadStatus); i++) {
+    for (i = 0; i < gFontMapSize; i++) {
         if (gAudioCtx.fontLoadStatus[i] != LOAD_STATUS_PERMANENT) {
             gAudioCtx.fontLoadStatus[i] = LOAD_STATUS_NOT_LOADED;
         }
@@ -68,9 +69,11 @@ void AudioHeap_ResetLoadStatus(void) {
         }
     }
 
-    for (i = 0; i < gSequenceToResourceSize; i++) {
-        if (gAudioCtx.seqLoadStatus[i] != LOAD_STATUS_PERMANENT) {
-            gAudioCtx.seqLoadStatus[i] = LOAD_STATUS_NOT_LOADED;
+    if (gAudioCtx.seqLoadStatus != NULL) {
+        for (i = 0; i < gSequenceMapSize; i++) {
+            if (gAudioCtx.seqLoadStatus[i] != LOAD_STATUS_PERMANENT) {
+                gAudioCtx.seqLoadStatus[i] = LOAD_STATUS_NOT_LOADED;
+            }
         }
     }
 }
@@ -191,7 +194,7 @@ void* AudioHeap_AllocDmaMemoryZeroed(AudioAllocPool* pool, size_t size) {
 }
 
 /**
- * Allocates space on a pool contained withing the heap and sets all the allocated space to 0
+ * Allocates space on a pool contained within the heap and sets all the allocated space to 0
  */
 void* AudioHeap_AllocZeroed(AudioAllocPool* pool, size_t size) {
     u8* addr = AudioHeap_Alloc(pool, size);
@@ -225,7 +228,7 @@ void* AudioHeap_TestAlloc(AudioAllocPool* pool, size_t size) {
 }
 
 /**
- * Allocates space on the pool contained withing the heap. If there is not enough space on the pool, return NULL
+ * Allocates space on the pool contained within the heap. If there is not enough space on the pool, return NULL
  */
 void* AudioHeap_Alloc(AudioAllocPool* pool, size_t size) {
     size_t alignedSize = ALIGN16(size);
@@ -1406,8 +1409,8 @@ void AudioHeap_ChangeStorage(StorageChange* change, Sample* sample) {
         uintptr_t startAddr = change->oldAddr;
         uintptr_t endAddr = change->oldAddr + change->size;
 
-        if (startAddr <= (uintptr_t)sample->sampleAddr && (uintptr_t)sample->sampleAddr < endAddr) {
-            sample->sampleAddr = sample->sampleAddr - startAddr + change->newAddr;
+        if (((uintptr_t)sample->sampleAddr >= startAddr) && ((uintptr_t)sample->sampleAddr < endAddr)) {
+            sample->sampleAddr += -startAddr + change->newAddr;
             if (D_801FD120 == 0) {
                 sample->medium = change->newMedium;
             } else {

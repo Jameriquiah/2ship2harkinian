@@ -1,11 +1,19 @@
 #include "GameInteractor.h"
-#include "spdlog/spdlog.h"
+#include <variant>
+#include <spdlog/spdlog.h>
+#include <libultraship/bridge/consolevariablebridge.h>
+#include "2s2h/CustomItem/CustomItem.h"
+#include "2s2h/CustomMessage/CustomMessage.h"
 
 extern "C" {
 #include "z64actor.h"
+#include "variables.h"
+#include "functions.h"
 }
 
-#include <libultraship/bridge.h>
+void GameInteractor_ExecuteOnGameStateMainStart() {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnGameStateMainStart>();
+}
 
 void GameInteractor_ExecuteOnGameStateMainFinish() {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::OnGameStateMainFinish>();
@@ -42,6 +50,14 @@ void GameInteractor_ExecuteOnSaveInit(s16 fileNum) {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSaveInit>(fileNum);
 }
 
+void GameInteractor_ExecuteOnSaveLoad(s16 fileNum) {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSaveLoad>(fileNum);
+}
+
+void GameInteractor_ExecuteOnFileSelectSaveLoad(s16 fileNum, bool isOwlSave, SaveContext* saveContext) {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnFileSelectSaveLoad>(fileNum, isOwlSave, saveContext);
+}
+
 void GameInteractor_ExecuteBeforeEndOfCycleSave() {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::BeforeEndOfCycleSave>();
 }
@@ -50,8 +66,24 @@ void GameInteractor_ExecuteAfterEndOfCycleSave() {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::AfterEndOfCycleSave>();
 }
 
-void GameInteractor_ExecuteBeforeMoonCrashSaveReset() {
-    GameInteractor::Instance->ExecuteHooks<GameInteractor::BeforeMoonCrashSaveReset>();
+void GameInteractor_ExecuteBeforeMoonCrash() {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::BeforeMoonCrash>();
+}
+
+void GameInteractor_ExecuteOnInterfaceDrawStart() {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnInterfaceDrawStart>();
+}
+
+void GameInteractor_ExecuteAfterInterfaceClockDraw() {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::AfterInterfaceClockDraw>();
+}
+
+void GameInteractor_ExecuteBeforeInterfaceClockDraw() {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::BeforeInterfaceClockDraw>();
+}
+
+void GameInteractor_ExecuteOnGameCompletion() {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnGameCompletion>();
 }
 
 void GameInteractor_ExecuteOnSceneInit(s16 sceneId, s8 spawnNum) {
@@ -151,6 +183,14 @@ void GameInteractor_ExecuteOnPlayerPostLimbDraw(Player* player, s32 limbIndex) {
     GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnPlayerPostLimbDraw>(player, limbIndex);
 }
 
+void GameInteractor_ExecuteOnBossDefeated(s16 actorId) {
+    SPDLOG_DEBUG("GameInteractor_ExecuteOnBossDefeated: actorId: {}", actorId);
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnBossDefeated>(actorId);
+    GameInteractor::Instance->ExecuteHooksForID<GameInteractor::OnBossDefeated>(actorId, actorId);
+    GameInteractor::Instance->ExecuteHooksForPtr<GameInteractor::OnBossDefeated>((uintptr_t)actorId, actorId);
+    GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnBossDefeated>(actorId);
+}
+
 void GameInteractor_ExecuteOnSceneFlagSet(s16 sceneId, FlagType flagType, u32 flag) {
     SPDLOG_DEBUG("OnSceneFlagSet: sceneId: {}, flagType: {}, flag: {}", sceneId, (u32)flagType, flag);
     GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSceneFlagSet>(sceneId, flagType, flag);
@@ -208,11 +248,11 @@ void GameInteractor_ExecuteOnPassPlayerInputs(Input* input) {
     GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnPassPlayerInputs>(input);
 }
 
-void GameInteractor_ExecuteOnOpenText(u16 textId) {
-    SPDLOG_DEBUG("OnOpenText: textId: {}", textId);
-    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnOpenText>(textId);
-    GameInteractor::Instance->ExecuteHooksForID<GameInteractor::OnOpenText>(textId, textId);
-    GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnOpenText>(textId);
+void GameInteractor_ExecuteOnOpenText(u16* textId, bool* loadFromMessageTable) {
+    SPDLOG_DEBUG("OnOpenText: textId: {}", *textId);
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnOpenText>(textId, loadFromMessageTable);
+    GameInteractor::Instance->ExecuteHooksForID<GameInteractor::OnOpenText>(*textId, textId, loadFromMessageTable);
+    GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnOpenText>(textId, loadFromMessageTable);
 }
 
 bool GameInteractor_ShouldItemGive(u8 item) {
@@ -228,6 +268,17 @@ void GameInteractor_ExecuteOnItemGive(u8 item) {
     GameInteractor::Instance->ExecuteHooks<GameInteractor::OnItemGive>(item);
     GameInteractor::Instance->ExecuteHooksForID<GameInteractor::OnItemGive>(item, item);
     GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnItemGive>(item);
+}
+
+void GameInteractor_ExecuteOnBottleContentsUpdate(u8 item) {
+    SPDLOG_DEBUG("OnBottleContentsUpdate: item: {}", item);
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnBottleContentsUpdate>(item);
+    GameInteractor::Instance->ExecuteHooksForID<GameInteractor::OnBottleContentsUpdate>(item, item);
+    GameInteractor::Instance->ExecuteHooksForFilter<GameInteractor::OnBottleContentsUpdate>(item);
+}
+
+void GameInteractor_ExecuteOnSeqPlayerInit(int32_t playerIdx, int32_t seqId) {
+    GameInteractor::Instance->ExecuteHooks<GameInteractor::OnSeqPlayerInit>(playerIdx, seqId);
 }
 
 bool GameInteractor_Should(GIVanillaBehavior flag, uint32_t result, ...) {
@@ -296,6 +347,11 @@ int GameInteractor_InvertControl(GIInvertType type) {
                 result *= -1;
             }
             break;
+        case GI_INVERT_SHIELD_Y:
+            if (CVarGetInteger("gEnhancements.Equipment.InvertShieldY", 0)) {
+                result *= -1;
+            }
+            break;
     }
 
     // Invert all X axis inputs if the Mirrored World mode is enabled
@@ -346,4 +402,152 @@ uint32_t GameInteractor_Dpad(GIDpadType type, uint32_t buttonCombo) {
     }
 
     return result;
+}
+
+uint32_t GameInteractor_RightStickOcarina(Input* input) {
+    uint32_t result = 0;
+
+    if (!CVarGetInteger("gEnhancements.Playback.RightStickOcarina", 0)) {
+        return result;
+    }
+
+    s8 rstick_x = input->cur.right_stick_x;
+    s8 rstick_y = input->cur.right_stick_y;
+    const s8 sensitivity = 64;
+
+    if (rstick_x > sensitivity) {
+        result |= BTN_CRIGHT;
+    } else if (rstick_x < -sensitivity) {
+        result |= BTN_CLEFT;
+    }
+
+    if (rstick_y > sensitivity) {
+        result |= BTN_CUP;
+    } else if (rstick_y < -sensitivity) {
+        result |= BTN_CDOWN;
+    }
+
+    return result;
+}
+
+void ProcessEvents(Actor* actor) {
+    Player* player = GET_PLAYER(gPlayState);
+
+    // If the player has a message active, stop
+    if (gPlayState->msgCtx.msgMode != 0) {
+        return;
+    }
+
+    // If the player is in a blocking cutscene, stop
+    if (Player_InBlockingCsMode(gPlayState, player)) {
+        return;
+    }
+
+    // If player is dead, stop
+    if (player->stateFlags1 & PLAYER_STATE1_DEAD) {
+        return;
+    }
+
+    // If there is an event active, stop
+    const auto& currentEvent = GameInteractor::Instance->currentEvent;
+    if (auto e = std::get_if<GIEventNone>(&currentEvent)) {
+        // no-op
+    } else {
+        return;
+    }
+
+    // If there are no events that need to happen, stop
+    if (GameInteractor::Instance->events.empty()) {
+        return;
+    }
+
+    GameInteractor::Instance->currentEvent = GameInteractor::Instance->events.front();
+    const auto& nextEvent = GameInteractor::Instance->currentEvent;
+
+    if (auto e = std::get_if<GIEventGiveItem>(&nextEvent)) {
+        EnItem00* enItem00;
+
+        s16 flags = CustomItem::HIDE_TILL_OVERHEAD | CustomItem::KEEP_ON_PLAYER;
+
+        // If the player is climbing or in the air, deliver the item without a cutscene but freeze the player
+        if (!e->showGetItemCutscene ||
+            (player->stateFlags1 &
+             (PLAYER_STATE1_CHARGING_SPIN_ATTACK | PLAYER_STATE1_2000 | PLAYER_STATE1_4000 | PLAYER_STATE1_40000 |
+              PLAYER_STATE1_80000 | PLAYER_STATE1_100000 | PLAYER_STATE1_200000 | PLAYER_STATE1_8000000)) ||
+            (Player_GetExplosiveHeld(player) > PLAYER_EXPLOSIVE_NONE)) {
+
+            flags |= CustomItem::GIVE_OVERHEAD;
+        } else {
+            flags |= CustomItem::GIVE_ITEM_CUTSCENE;
+        }
+
+        enItem00 = CustomItem::Spawn(
+            player->actor.world.pos.x, player->actor.world.pos.y, player->actor.world.pos.z, 0, flags, e->param,
+            [](Actor* actor, PlayState* play) {
+                Player* player = GET_PLAYER(gPlayState);
+                const auto& nextEvent = GameInteractor::Instance->currentEvent;
+                if (auto e = std::get_if<GIEventGiveItem>(&nextEvent)) {
+                    e->giveItem(actor, play);
+                    if (e->showGetItemCutscene && !(CUSTOM_ITEM_FLAGS & CustomItem::GIVE_ITEM_CUTSCENE)) {
+                        player->actor.freezeTimer = 30;
+                    }
+                    GameInteractor::Instance->currentEvent = GIEventNone{};
+                }
+            },
+            e->drawItem);
+        enItem00->actor.destroy = [](Actor* actor, PlayState* play) {
+            if (!(CUSTOM_ITEM_FLAGS & CustomItem::CALLED_ACTION)) {
+                // Event was not handled, requeue it
+                auto lostEvent = GameInteractor::Instance->currentEvent;
+                GameInteractor::Instance->currentEvent = GIEventNone{};
+                GameInteractor::Instance->events.push_back(lostEvent);
+            }
+        };
+    } else if (auto e = std::get_if<GIEventTransition>(&nextEvent)) {
+        gPlayState->nextEntrance = e->entrance;
+        gSaveContext.nextCutsceneIndex = e->cutsceneIndex;
+        gPlayState->transitionTrigger = e->transitionTrigger;
+        gPlayState->transitionType = e->transitionType;
+        GameInteractor::Instance->currentEvent = GIEventNone{};
+    } else if (auto e = std::get_if<GIEventSpawnActor>(&nextEvent)) {
+        // if true, the coordinates are made relative to the player's position and rotation, 0 rotation is facing the
+        // same direction as the player, x+ is to the players right, y+ is up, z+ is in front of the player
+        if (e->relativeCoords) {
+            f32 x = player->actor.world.pos.x;
+            f32 y = player->actor.world.pos.y;
+            f32 z = player->actor.world.pos.z;
+            f32 s = sin(player->actor.world.rot.y);
+            f32 c = cos(player->actor.world.rot.y);
+            f32 x2 = e->posX * c - e->posZ * s;
+            f32 z2 = e->posX * s + e->posZ * c;
+            Actor_Spawn(&gPlayState->actorCtx, gPlayState, e->actorId, x + x2, y + e->posY, z + z2, 0,
+                        e->rotY + player->actor.world.rot.y, 0, e->params);
+        } else {
+            Actor_Spawn(&gPlayState->actorCtx, gPlayState, e->actorId, e->posX, e->posY, e->posZ, e->rotX, e->rotY,
+                        e->rotZ, e->params);
+        }
+        GameInteractor::Instance->currentEvent = GIEventNone{};
+    } else if (auto e = std::get_if<GIEventTrap>(&nextEvent)) {
+        if (player->stateFlags1 & PLAYER_STATE1_800000) {
+            // Player is riding a horse, requeue the event
+            auto lostEvent = GameInteractor::Instance->currentEvent;
+            GameInteractor::Instance->currentEvent = GIEventNone{};
+            GameInteractor::Instance->events.push_back(lostEvent);
+        } else {
+            if (e->action) {
+                e->action();
+            }
+            GameInteractor::Instance->currentEvent = GIEventNone{};
+        }
+    }
+
+    GameInteractor::Instance->events.erase(GameInteractor::Instance->events.begin());
+}
+
+void GameInteractor::RegisterOwnHooks() {
+    // Cleanup all hooks at the start of each frame
+    GameInteractor::Instance->RegisterGameHook<GameInteractor::OnGameStateMainStart>(
+        []() { GameInteractor::Instance->RemoveAllQueuedHooks(); });
+
+    GameInteractor::Instance->RegisterGameHookForID<GameInteractor::OnActorUpdate>(ACTOR_PLAYER, ProcessEvents);
 }

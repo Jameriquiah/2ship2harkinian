@@ -7,10 +7,9 @@
 #include "z_obj_pzlblock.h"
 #include "objects/gameplay_dangeon_keep/gameplay_dangeon_keep.h"
 #include "objects/object_secom_obj/object_secom_obj.h"
+#include "2s2h/GameInteractor/GameInteractor.h"
 
-#define FLAGS (ACTOR_FLAG_10 | ACTOR_FLAG_CAN_PRESS_SWITCH)
-
-#define THIS ((ObjPzlblock*)thisx)
+#define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_CAN_PRESS_SWITCHES)
 
 void ObjPzlblock_Init(Actor* thisx, PlayState* play);
 void ObjPzlblock_Destroy(Actor* thisx, PlayState* play);
@@ -25,7 +24,7 @@ void func_809A3D38(ObjPzlblock* this, PlayState* play);
 void func_809A3E58(Actor* thisx, PlayState* play);
 void func_809A3F0C(Actor* thisx, PlayState* play);
 
-ActorInit Obj_Pzlblock_InitVars = {
+ActorProfile Obj_Pzlblock_Profile = {
     /**/ ACTOR_OBJ_PZLBLOCK,
     /**/ ACTORCAT_PROP,
     /**/ FLAGS,
@@ -53,9 +52,9 @@ ObjPzlblockStruct D_809A4060[] = {
 
 static InitChainEntry sInitChain[] = {
     ICHAIN_VEC3S(world.rot, 0, ICHAIN_CONTINUE),
-    ICHAIN_F32(uncullZoneForward, 4000, ICHAIN_CONTINUE),
-    ICHAIN_F32(uncullZoneScale, 100, ICHAIN_CONTINUE),
-    ICHAIN_F32(uncullZoneDownward, 200, ICHAIN_STOP),
+    ICHAIN_F32(cullingVolumeDistance, 4000, ICHAIN_CONTINUE),
+    ICHAIN_F32(cullingVolumeScale, 100, ICHAIN_CONTINUE),
+    ICHAIN_F32(cullingVolumeDownward, 200, ICHAIN_STOP),
 };
 
 Color_RGB8 D_809A4088[] = {
@@ -63,7 +62,7 @@ Color_RGB8 D_809A4088[] = {
     { 0, 255, 255 },   { 255, 0, 255 },   { 0, 0, 0 },   { 255, 255, 255 },
 };
 
-s32 func_809A33E0(ObjPzlblock* this, PlayState* play, s16 arg2) {
+bool func_809A33E0(ObjPzlblock* this, PlayState* play, s16 arg2) {
     return !DynaPolyActor_ValidateMove(play, &this->dyna, 30, arg2, 1) ||
            !DynaPolyActor_ValidateMove(play, &this->dyna, 30, arg2, 28);
 }
@@ -94,7 +93,7 @@ s32 func_809A3448(ObjPzlblock* this) {
     return -1;
 }
 
-s32 func_809A34E0(ObjPzlblock* this, s32 arg1) {
+bool func_809A34E0(ObjPzlblock* this, s32 arg1) {
     s32 temp_v0 = OBJPZLBLOCK_GET_ROTZ(&this->dyna.actor);
 
     if (temp_v0 == 0) {
@@ -134,7 +133,7 @@ s32 func_809A34E0(ObjPzlblock* this, s32 arg1) {
     return false;
 }
 
-s32 func_809A35EC(ObjPzlblock* this, s32 arg1) {
+bool func_809A35EC(ObjPzlblock* this, s32 arg1) {
     s32 temp_v0 = OBJPZLBLOCK_GET_ROTZ(&this->dyna.actor);
     s32 temp_v1 = this->dyna.actor.home.rot.x & 0xF;
     s32 temp;
@@ -193,7 +192,7 @@ void func_809A376C(ObjPzlblock* this, s32 arg1) {
 
 void ObjPzlblock_Init(Actor* thisx, PlayState* play) {
     s32 pad;
-    ObjPzlblock* this = THIS;
+    ObjPzlblock* this = (ObjPzlblock*)thisx;
     s32 sp2C = OBJPZLBLOCK_GET_ROTZ(&this->dyna.actor);
     s32 sp28 = this->dyna.actor.home.rot.x & 0xF;
     ObjPzlblockStruct* sp24 = &D_809A4060[OBJPZLBLOCK_GET_1000(&this->dyna.actor)];
@@ -233,7 +232,7 @@ void ObjPzlblock_Init(Actor* thisx, PlayState* play) {
 }
 
 void ObjPzlblock_Destroy(Actor* thisx, PlayState* play) {
-    ObjPzlblock* this = THIS;
+    ObjPzlblock* this = (ObjPzlblock*)thisx;
 
     DynaPoly_DeleteBgActor(play, &play->colCtx.dyna, this->dyna.bgId);
 }
@@ -260,7 +259,8 @@ void func_809A3A74(ObjPzlblock* this, PlayState* play) {
     }
 
     if (sp20 != -1) {
-        if ((this->unk_16E[sp20] >= 11) && func_809A34E0(this, sp20) && func_809A35EC(this, sp20)) {
+        if (GameInteractor_Should(VB_BLOCK_BEGIN_MOVE, (this->unk_16E[sp20] >= 11), this) &&
+            func_809A34E0(this, sp20) && func_809A35EC(this, sp20)) {
             if (!func_809A33E0(this, play, (this->dyna.pushForce > 0.0f) ? 90 : 120)) {
                 func_809A376C(this, sp20);
                 func_809A3BA4(this);
@@ -279,7 +279,8 @@ void func_809A3BA4(ObjPzlblock* this) {
 }
 
 void func_809A3BC0(ObjPzlblock* this, PlayState* play) {
-    if (Math_StepToF(this->unk_164, this->unk_168, 2.3f)) {
+    if (GameInteractor_Should(VB_BLOCK_BE_FINISHED_PULLING, Math_StepToF(this->unk_164, this->unk_168, 2.3f),
+                              this->unk_164, this->unk_168, 2.3f, 2.3f)) {
         Player* player = GET_PLAYER(play);
         s32 params = OBJPZLBLOCK_GET_ROTZ(&this->dyna.actor);
         s32 pad;
@@ -325,7 +326,7 @@ void func_809A3D38(ObjPzlblock* this, PlayState* play) {
 
 void ObjPzlblock_Update(Actor* thisx, PlayState* play) {
     s32 pad;
-    ObjPzlblock* this = THIS;
+    ObjPzlblock* this = (ObjPzlblock*)thisx;
 
     this->dyna.actor.world.pos.y = this->dyna.actor.home.pos.y;
     Actor_UpdateBgCheckInfo(play, &this->dyna.actor, 15.0f, 30.0f, 0.0f, UPDBGCHECKINFO_FLAG_4);
@@ -342,7 +343,7 @@ void ObjPzlblock_Update(Actor* thisx, PlayState* play) {
 }
 
 void func_809A3E58(Actor* thisx, PlayState* play) {
-    ObjPzlblock* this = THIS;
+    ObjPzlblock* this = (ObjPzlblock*)thisx;
 
     this->actionFunc(this, play);
 
@@ -366,7 +367,7 @@ void func_809A3F0C(Actor* thisx, PlayState* play) {
 
     Gfx_SetupDL25_Opa(play->state.gfxCtx);
 
-    gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
     gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, sp28->r, sp28->g, sp28->b, 255);
     gSPDisplayList(POLY_OPA_DISP++, sp2C->unk_08);
 
