@@ -54,6 +54,7 @@
 #include <unordered_map>
 #include <random>
 #include <string>
+#include <sstream>
 
 extern "C" uint32_t CRC32C(unsigned char* data, size_t dataSize);
 
@@ -592,6 +593,7 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     constexpr int argc = 22;
     char xmlPath[1024];
     char confPath[1024];
+    char filelistsPath[1024];
     char portVersion[18]; // 5 digits for int16_max (x3) + separators + terminator
     std::array<const char*, argc> argv;
     const char* version = GetZapdVerStr();
@@ -619,7 +621,44 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
 
     snprintf(xmlPath, 1024, "assets/xml/%s", version);
     snprintf(confPath, 1024, "assets/extractor/Config_%s.xml", version);
+    snprintf(filelistsPath, 1024, "assets/extractor/filelists");
     snprintf(portVersion, 18, "%d.%d.%d", gBuildVersionMajor, gBuildVersionMinor, gBuildVersionPatch);
+
+#ifdef __ANDROID__
+    std::ostringstream missingPaths;
+    if (!std::filesystem::exists(confPath)) {
+        missingPaths << confPath << "\n";
+    }
+    if (!std::filesystem::exists(xmlPath)) {
+        missingPaths << xmlPath << "\n";
+    }
+    if (!std::filesystem::exists(filelistsPath)) {
+        missingPaths << filelistsPath << "\n";
+    }
+
+    {
+        std::ofstream debugFile(installPath + "/extractor-debug.txt", std::ios::out | std::ios::trunc);
+        debugFile << "tempdir=" << tempdir << "\n";
+        debugFile << "curdir=" << curdir << "\n";
+        debugFile << "cwd=" << std::filesystem::current_path().string() << "\n";
+        debugFile << "installPath=" << installPath << "\n";
+        debugFile << "exportdir=" << exportdir << "\n";
+        debugFile << "romPath=" << romPath << "\n";
+        debugFile << "xmlPath=" << xmlPath << " exists=" << std::filesystem::exists(xmlPath) << "\n";
+        debugFile << "confPath=" << confPath << " exists=" << std::filesystem::exists(confPath) << "\n";
+        debugFile << "filelistsPath=" << filelistsPath << " exists=" << std::filesystem::exists(filelistsPath) << "\n";
+    }
+
+    if (!missingPaths.str().empty()) {
+        std::string error =
+            "The Android extractor asset copy is incomplete. Missing paths in temp directory:\n\n" + missingPaths.str() +
+            "\nDelete /sdcard/2S2H/assets and reinstall a freshly rebuilt APK.";
+        std::filesystem::current_path(curdir);
+        std::filesystem::remove_all(tempdir);
+        ShowErrorBox("Extractor Assets Missing", error.c_str());
+        return false;
+    }
+#endif
 
     argv[0] = "ZAPD";
     argv[1] = "ed";
@@ -628,7 +667,7 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     argv[4] = "-b";
     argv[5] = romPath.c_str();
     argv[6] = "-fl";
-    argv[7] = "assets/extractor/filelists";
+    argv[7] = filelistsPath;
     argv[8] = "-gsf";
     argv[9] = "0";
     argv[10] = "-rconf";
@@ -657,7 +696,21 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     mbThread.detach();
 #endif
 
-    zapd_main(argc, (char**)argv.data());
+    try {
+        zapd_main(argc, (char**)argv.data());
+    } catch (const std::exception& e) {
+        std::string error = "ZAPD extraction failed:\n\n";
+        error += e.what();
+        std::filesystem::current_path(curdir);
+        std::filesystem::remove_all(tempdir);
+        ShowErrorBox("Extractor Failed", error.c_str());
+        return false;
+    } catch (...) {
+        std::filesystem::current_path(curdir);
+        std::filesystem::remove_all(tempdir);
+        ShowErrorBox("Extractor Failed", "ZAPD extraction failed with an unknown exception.");
+        return false;
+    }
 
 #ifdef _WIN32
     // Hide the command window again.
