@@ -177,6 +177,7 @@ OTRGlobals::OTRGlobals() {
     context->InitGfxDebugger();
     context->InitConfiguration();
     context->InitConsoleVariables();
+    context->InitControlDeck(std::make_shared<LUS::ControlDeck>());
 #if (_DEBUG)
     auto defaultLogLevel = spdlog::level::trace;
 #else
