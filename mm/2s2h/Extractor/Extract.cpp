@@ -618,7 +618,7 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     std::filesystem::current_path(tempdir);
 
     snprintf(xmlPath, 1024, "assets/xml/%s", version);
-    snprintf(confPath, 1024, "assets/Config_%s.xml", version);
+    snprintf(confPath, 1024, "assets/extractor/Config_%s.xml", version);
     snprintf(portVersion, 18, "%d.%d.%d", gBuildVersionMajor, gBuildVersionMinor, gBuildVersionPatch);
 
     argv[0] = "ZAPD";
@@ -628,7 +628,7 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     argv[4] = "-b";
     argv[5] = romPath.c_str();
     argv[6] = "-fl";
-    argv[7] = "assets/filelists";
+    argv[7] = "assets/extractor/filelists";
     argv[8] = "-gsf";
     argv[9] = "0";
     argv[10] = "-rconf";
