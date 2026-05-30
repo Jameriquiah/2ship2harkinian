@@ -193,7 +193,7 @@ size_t Fragment_Load(uintptr_t vromStart, uintptr_t vromEnd, void* vramStart, vo
             // Clear BSS area (%08x-%08x)
             // "BSS領域をクリアします(%08x-%08x)\n"
         }
-        memset(end, 0, ovlRelocs->bssSize);
+        memset((void*)end, 0, ovlRelocs->bssSize);
     }
 
     osWritebackDCache(allocatedRamAddr, allocatedBytes);
@@ -271,7 +271,7 @@ void* Fragment_AllocateAndLoad(uintptr_t vromStart, uintptr_t vromEnd, void* vra
             // Clear BSS area (%08x-%08x)
             // "BSS領域をクリアします(%08x-%08x)\n"
         }
-        memset(end, 0, ovlRelocs->bssSize);
+        memset((void*)end, 0, ovlRelocs->bssSize);
     }
 
     osInvalICache(allocatedRamAddr, allocatedBytes);

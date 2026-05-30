@@ -3,7 +3,7 @@
 #include "2s2h/ShipInit.hpp"
 #include "CameraUtils.h"
 #ifdef __ANDROID__
-#include "port/mobile/MobileImpl.h"
+#include "ship/port/mobile/MobileImpl.h"
 #endif
 
 extern "C" {

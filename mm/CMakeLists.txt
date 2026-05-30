@@ -594,9 +594,49 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
+
+    if(DEFINED ANDROID_VCPKG_ROOT)
+        if(ANDROID_ABI STREQUAL "arm64-v8a")
+            set(ANDROID_VCPKG_TRIPLET "arm64-android")
+        elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+            set(ANDROID_VCPKG_TRIPLET "arm-neon-android")
+        elseif(ANDROID_ABI STREQUAL "x86")
+            set(ANDROID_VCPKG_TRIPLET "x86-android")
+        elseif(ANDROID_ABI STREQUAL "x86_64")
+            set(ANDROID_VCPKG_TRIPLET "x64-android")
+        else()
+            message(FATAL_ERROR "Unsupported Android ABI for vcpkg: ${ANDROID_ABI}")
+        endif()
+
+        set(ANDROID_VCPKG_PREFIX "${ANDROID_VCPKG_ROOT}/installed/${ANDROID_VCPKG_TRIPLET}")
+        list(PREPEND CMAKE_PREFIX_PATH "${ANDROID_VCPKG_PREFIX}")
+        set(Ogg_DIR "${ANDROID_VCPKG_PREFIX}/share/ogg")
+        set(Opus_DIR "${ANDROID_VCPKG_PREFIX}/share/opus")
+        set(OpusFile_DIR "${ANDROID_VCPKG_PREFIX}/share/opusfile")
+        set(Vorbis_DIR "${ANDROID_VCPKG_PREFIX}/share/Vorbis")
+    endif()
+
+    find_package(Ogg CONFIG REQUIRED)
+    find_package(Vorbis CONFIG REQUIRED)
+    find_package(Opus CONFIG REQUIRED)
+    find_package(OpusFile CONFIG REQUIRED)
+
+    if(TARGET OpusFile::opusfile)
+        set(OPUSFILE_TARGET OpusFile::opusfile)
+    elseif(TARGET Opusfile::Opusfile)
+        set(OPUSFILE_TARGET Opusfile::Opusfile)
+    else()
+        message(FATAL_ERROR "OpusFile package was found, but no known OpusFile target is available")
+    endif()
+
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "libultraship;"
         "ZAPDLib;"
+        Ogg::ogg
+        Vorbis::vorbis
+        Vorbis::vorbisfile
+        Opus::opus
+        ${OPUSFILE_TARGET}
         SDL2::SDL2
         Threads::Threads
     )

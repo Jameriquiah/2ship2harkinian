@@ -608,8 +608,8 @@ void Menu::DrawElement() {
 #else
     float headerWidth = 200.0f + style.ItemSpacing.x;
 #endif
-    for (int i = 0; i < sectionCount; i++) {
-        ImVec2 size = ImGui::CalcTextSize(menuEntries.at(i).label.c_str());
+    for (auto& label : menuOrder) {
+        ImVec2 size = ImGui::CalcTextSize(label.c_str());
         headerSizes.push_back(size);
         headerWidth += size.x + style.FramePadding.x * 2;
         if (label == headerIndex) {
@@ -642,6 +642,7 @@ void Menu::DrawElement() {
         headerSelSize.y += style.ScrollbarSize;
     }
     bool autoFocus = CVarGetInteger("gSettings.Menu.SearchAutofocus", 0);
+    bool headerSearch = !CVarGetInteger("gSettings.Menu.SidebarSearch", 0);
     ImGui::BeginChild("Header Selection", headerSelSize,
                       ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
                       ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_HorizontalScrollbar);
@@ -750,94 +751,6 @@ void Menu::DrawElement() {
             mImGuiIo->ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
         }
     }
-    ImGui::SameLine();
-    ImGui::SetNextWindowSizeConstraints({ 0, headerHeight }, { headerWidth, headerHeight });
-    ImVec2 headerSelSize = { menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 3, headerHeight };
-    if (scrollbar) {
-        headerSelSize.y += style.ScrollbarSize;
-    }
-    bool autoFocus = CVarGetInteger("gSettings.SearchAutofocus", 0);
-    bool headerSearch = !CVarGetInteger("gSettings.SidebarSearch", 0);
-    ImGui::BeginChild("Header Selection", headerSelSize,
-                      ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
-                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_HorizontalScrollbar);
-    for (int i = 0; i < sectionCount; i++) {
-        auto entry = menuEntries.at(i);
-        uint8_t nextIndex = i;
-        UIWidgets::PushStyleButton(menuTheme[menuThemeIndex]);
-        if (headerIndex != i) {
-            ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
-        }
-        if (ModernMenuHeaderEntry(entry.label)) {
-            if (autoFocus) {
-                menuSearch.Clear();
-            }
-            CVarSetInteger(headerCvar, i);
-            CVarSave();
-            nextIndex = i;
-        }
-        if (headerIndex != i) {
-            ImGui::PopStyleColor();
-        }
-        UIWidgets::PopStyleButton();
-        if (headerIndex == i) {
-            sidebar = entry.sidebarEntries;
-        }
-        if (i + 1 < sectionCount) {
-            ImGui::SameLine();
-        }
-        if (nextIndex != i) {
-            headerIndex = nextIndex;
-        }
-    }
-    std::string menuSearchText = "";
-    if (headerSearch) {
-        ImGui::SameLine();
-        if (autoFocus && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() &&
-            !ImGui::IsMouseClicked(0)) {
-            ImGui::SetKeyboardFocusHere(0);
-        }
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0, 0, 0, 0 });
-        menuSearch.Draw("##search", 200.0f);
-        menuSearchText = menuSearch.InputBuf;
-        menuSearchText.erase(std::remove(menuSearchText.begin(), menuSearchText.end(), ' '), menuSearchText.end());
-        if (menuSearchText.length() < 1) {
-#ifdef __ANDROID__
-            ImGui::SameLine(headerWidth - 600.0f + style.ItemSpacing.x);
-#else
-            ImGui::SameLine(headerWidth - 200.0f + style.ItemSpacing.x);
-#endif
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Search...");
-        }
-        ImGui::PopStyleColor();
-    }
-    ImGui::EndChild();
-    ImGui::SameLine(menuSize.x - (buttonSize.x * 2) - style.ItemSpacing.x);
-    if (UIWidgets::Button(ICON_FA_UNDO, { .color = UIWidgets::Colors::Red,
-                                          .size = UIWidgets::Sizes::Inline,
-                                          .tooltip = "Reset"
-#ifdef __APPLE__
-                                                     " (Command-R)"
-#elif !defined(__SWITCH__) && !defined(__WIIU__) && !defined(__ANDROID__)
-                                                     " (Ctrl+R)"
-#else
-                                                     ""
-#endif
-                                        })) {
-        std::reinterpret_pointer_cast<Ship::ConsoleWindow>(
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->GetGuiWindow("Console"))
-            ->Dispatch("reset");
-    }
-    ImGui::SameLine();
-    if (UIWidgets::Button(
-            ICON_FA_POWER_OFF,
-            { .color = UIWidgets::Colors::Red, .size = UIWidgets::Sizes::Inline, .tooltip = "Quit 2S2H" })) {
-        if (!popped) {
-            ToggleVisibility();
-        }
-        Ship::Context::GetInstance()->GetWindow()->Close();
-    }
-    ImGui::PopStyleVar();
 
     pos.y += headerHeight + style.ItemSpacing.y;
     pos.x = centerX - menuSize.x / 2 + (style.ItemSpacing.x * (menuEntries.size() + 1));

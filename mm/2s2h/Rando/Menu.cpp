@@ -9,6 +9,8 @@
 #include "2s2h/Rando/Logic/Logic.h"
 #include "2s2h/ShipInit.hpp"
 
+#include <sstream>
+
 extern "C" {
 #include "overlays/actors/ovl_En_Sth/z_en_sth.h"
 }

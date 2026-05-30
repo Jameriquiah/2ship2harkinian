@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <cassert>
+#include <sstream>
 #include <libultraship/bridge/consolevariablebridge.h>
 #include <ship/Context.h>
 #include <ship/window/Window.h>
