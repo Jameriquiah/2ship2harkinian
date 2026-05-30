@@ -617,9 +617,9 @@ void Menu::DrawElement() {
         }
     }
 #ifdef __ANDROID__
-    ImVec2 menuSize = {windowWidth,windowHeight};
+    ImVec2 menuSize = { windowWidth, windowHeight };
 #else
-    ImVec2 menuSize = {std::fminf(1280, windowWidth), std::fminf(800, windowHeight) };
+    ImVec2 menuSize = { std::fminf(1280, windowWidth), std::fminf(800, windowHeight) };
 #endif
     pos += window->WorkRect.GetSize() / 2 - menuSize / 2;
     ImGui::SetNextWindowPos(pos);
@@ -816,7 +816,7 @@ void Menu::DrawElement() {
         columns = 1;
     }
 #ifdef __ANDROID__
-    columns=1;
+    columns = 1;
 #endif
     float columnWidth = (sectionWidth - style.ItemSpacing.x * columns) / columns;
     bool useColumns = columns > 1;

@@ -70,7 +70,7 @@ void Heaps_Free(void);
 #endif
 #ifdef __ANDROID__
 int SDL_main(int argc, char** argv /* void* arg*/) {
-    wait_for_java_setup();  // Pause here until Java is ready
+    wait_for_java_setup(); // Pause here until Java is ready
 #else
 void SDL_main(int argc, char** argv /* void* arg*/) {
 #endif

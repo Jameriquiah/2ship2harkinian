@@ -83,7 +83,7 @@ enum class ButtonId : int {
 const char* javaRomPath = NULL;
 bool fileDialogOpen = false;
 
-//function to be called from C
+// function to be called from C
 void openFilePickerFromC(JNIEnv* env, jobject javaObject) {
     fileDialogOpen = true;
     jclass javaClass = env->GetObjectClass(javaObject);
@@ -91,7 +91,8 @@ void openFilePickerFromC(JNIEnv* env, jobject javaObject) {
     env->CallVoidMethod(javaObject, openFilePickerMethod);
 }
 // Define the native method to handle the selected file path
-extern "C" void JNICALL Java_com_dishii_mm_MainActivity_nativeHandleSelectedFile(JNIEnv* env, jobject obj, jstring filePath) {
+extern "C" void JNICALL Java_com_dishii_mm_MainActivity_nativeHandleSelectedFile(JNIEnv* env, jobject obj,
+                                                                                 jstring filePath) {
     const char* filePathStr = env->GetStringUTFChars(filePath, 0);
     javaRomPath = strdup(filePathStr); // save filepath to string
     fileDialogOpen = false;
@@ -319,11 +320,11 @@ bool Extractor::GetRomPathFromBox() {
     jobject javaObject = (jobject)SDL_AndroidGetActivity();
     std::vector<std::string> selection;
     openFilePickerFromC(javaEnv, javaObject);
-    while(fileDialogOpen){
-        //Do nothing until it's chosen
+    while (fileDialogOpen) {
+        // Do nothing until it's chosen
         SDL_Delay(250);
     }
-    SDL_Log("%s",javaRomPath);
+    SDL_Log("%s", javaRomPath);
     selection.push_back(javaRomPath);
 #endif
     if (selection.empty()) {
@@ -650,9 +651,8 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     }
 
     if (!missingPaths.str().empty()) {
-        std::string error =
-            "The Android extractor asset copy is incomplete. Missing paths in temp directory:\n\n" + missingPaths.str() +
-            "\nDelete /sdcard/2S2H/assets and reinstall a freshly rebuilt APK.";
+        std::string error = "The Android extractor asset copy is incomplete. Missing paths in temp directory:\n\n" +
+                            missingPaths.str() + "\nDelete /sdcard/2S2H/assets and reinstall a freshly rebuilt APK.";
         std::filesystem::current_path(curdir);
         std::filesystem::remove_all(tempdir);
         ShowErrorBox("Extractor Assets Missing", error.c_str());

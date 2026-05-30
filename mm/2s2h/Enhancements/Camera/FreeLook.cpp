@@ -104,9 +104,9 @@ bool Camera_FreeLook(Camera* camera) {
                     (CVarGetFloat("gEnhancements.Camera.RightStick.CameraSensitivity.Y", 1.0f));
 
 #ifdef __ANDROID__
-    if(Ship::Mobile::IsUsingTouchscreenControls()) {
-        yawDiff += -Ship::Mobile::GetCameraYaw()*10.0f;
-        pitchDiff += Ship::Mobile::GetCameraPitch()*10.0f;
+    if (Ship::Mobile::IsUsingTouchscreenControls()) {
+        yawDiff += -Ship::Mobile::GetCameraYaw() * 10.0f;
+        pitchDiff += Ship::Mobile::GetCameraPitch() * 10.0f;
     }
 #endif
 
@@ -155,8 +155,9 @@ bool Camera_CanFreeLook(Camera* camera) {
     f32 camY = sCamPlayState->state.input[0].cur.right_stick_y * 10.0f;
 
 #ifdef __ANDROID__
-    if(!sCanFreeLook && Ship::Mobile::IsUsingTouchscreenControls() && (Ship::Mobile::GetCameraYaw()>0||Ship::Mobile::GetCameraPitch()>0)) {
-            sCanFreeLook=true;
+    if (!sCanFreeLook && Ship::Mobile::IsUsingTouchscreenControls() &&
+        (Ship::Mobile::GetCameraYaw() > 0 || Ship::Mobile::GetCameraPitch() > 0)) {
+        sCanFreeLook = true;
     }
 #endif
 
