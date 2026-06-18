@@ -38,6 +38,8 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
@@ -414,7 +416,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
         setContentView(mLayout);
 
-        setWindowStyle(false);
+        setWindowStyle(true);
 
         getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(this);
 
@@ -539,6 +541,9 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         if (hasFocus) {
            mNextNativeState = NativeState.RESUMED;
            SDLActivity.getMotionListener().reclaimRelativeMouseModeIfNeeded();
+           if (SDLActivity.mFullscreenModeActive) {
+               applyFullscreenMode(getWindow());
+           }
 
            SDLActivity.handleNativeState();
            nativeFocusChanged(true);
@@ -734,6 +739,65 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
     protected static boolean mFullscreenModeActive;
 
+    private static int getLegacyFullscreenFlags() {
+        return View.SYSTEM_UI_FLAG_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.INVISIBLE;
+    }
+
+    private static void applyFullscreenMode(Window window) {
+        if (window == null) {
+            return;
+        }
+
+        View decorView = window.getDecorView();
+        if (Build.VERSION.SDK_INT >= 30 /* Android 11 (R) */) {
+            window.setDecorFitsSystemWindows(false);
+            WindowInsetsController controller = decorView.getWindowInsetsController();
+            if (controller != null) {
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= 19 /* Android 4.4 (KITKAT) */) {
+            decorView.setSystemUiVisibility(getLegacyFullscreenFlags());
+        }
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+
+        if (Build.VERSION.SDK_INT >= 28 /* Android 9 (Pie) */) {
+            window.getAttributes().layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
+    }
+
+    private static void applyWindowedMode(Window window) {
+        if (window == null) {
+            return;
+        }
+
+        View decorView = window.getDecorView();
+        if (Build.VERSION.SDK_INT >= 30 /* Android 11 (R) */) {
+            window.setDecorFitsSystemWindows(true);
+            WindowInsetsController controller = decorView.getWindowInsetsController();
+            if (controller != null) {
+                controller.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= 19 /* Android 4.4 (KITKAT) */) {
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_VISIBLE);
+        }
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    }
+
     /**
      * This method is called by SDL if SDL did not handle a message itself.
      * This happens if a received message contains an unsupported command.
@@ -773,25 +837,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                         Window window = ((Activity) context).getWindow();
                         if (window != null) {
                             if ((msg.obj instanceof Integer) && ((Integer) msg.obj != 0)) {
-                                int flags = View.SYSTEM_UI_FLAG_FULLSCREEN |
-                                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.INVISIBLE;
-                                window.getDecorView().setSystemUiVisibility(flags);
-                                window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                                window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+                                applyFullscreenMode(window);
                                 SDLActivity.mFullscreenModeActive = true;
                             } else {
-                                int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_VISIBLE;
-                                window.getDecorView().setSystemUiVisibility(flags);
-                                window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-                                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                                applyWindowedMode(window);
                                 SDLActivity.mFullscreenModeActive = false;
-                            }
-                            if (Build.VERSION.SDK_INT >= 28 /* Android 9 (Pie) */) {
-                                window.getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
                             }
                         }
                     } else {
@@ -1623,15 +1673,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     private final Runnable rehideSystemUi = new Runnable() {
         @Override
         public void run() {
-            if (Build.VERSION.SDK_INT >= 19 /* Android 4.4 (KITKAT) */) {
-                int flags = View.SYSTEM_UI_FLAG_FULLSCREEN |
-                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.INVISIBLE;
-
-                SDLActivity.this.getWindow().getDecorView().setSystemUiVisibility(flags);
+            if (SDLActivity.mFullscreenModeActive) {
+                applyFullscreenMode(SDLActivity.this.getWindow());
             }
         }
     };
@@ -2117,4 +2160,3 @@ class SDLClipboardHandler implements
         SDLActivity.onNativeClipboardChanged();
     }
 }
-
