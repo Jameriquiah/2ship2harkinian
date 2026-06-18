@@ -8,6 +8,83 @@ extern TexturePtr sPlayerMouthTextures[PLAYER_FORM_MAX][PLAYER_MOUTH_MAX];
 uint8_t ResourceMgr_FileExists(const char* resName);
 }
 
+#ifdef __ANDROID__
+#define ALIGNED_OTR_PATH(name, value) alignas(2) static const char name[] = value
+
+ALIGNED_OTR_PATH(sFDEyesOpenTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesOpenTex");
+ALIGNED_OTR_PATH(sFDEyesHalfTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesHalfTex");
+ALIGNED_OTR_PATH(sFDEyesClosedTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesClosedTex");
+ALIGNED_OTR_PATH(sFDEyesRightTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesRightTex");
+ALIGNED_OTR_PATH(sFDEyesLeftTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesLeftTex");
+ALIGNED_OTR_PATH(sFDEyesUpTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesUpTex");
+ALIGNED_OTR_PATH(sFDEyesDownTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesDownTex");
+ALIGNED_OTR_PATH(sFDEyesWincingTex, "__OTR__objects/object_link_boy/gLinkFierceDeityEyesWincingTex");
+
+ALIGNED_OTR_PATH(sFDMouthClosedTex, "__OTR__objects/object_link_boy/gLinkFierceDeityMouthClosedTex");
+ALIGNED_OTR_PATH(sFDMouthHalfTex, "__OTR__objects/object_link_boy/gLinkFierceDeityMouthHalfTex");
+ALIGNED_OTR_PATH(sFDMouthOpenTex, "__OTR__objects/object_link_boy/gLinkFierceDeityMouthOpenTex");
+ALIGNED_OTR_PATH(sFDMouthSmileTex, "__OTR__objects/object_link_boy/gLinkFierceDeityMouthSmileTex");
+
+ALIGNED_OTR_PATH(sDekuEyesOpenTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesOpenTex");
+ALIGNED_OTR_PATH(sDekuEyesHalfTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesHalfTex");
+ALIGNED_OTR_PATH(sDekuEyesClosedTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesClosedTex");
+ALIGNED_OTR_PATH(sDekuEyesRightTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesRightTex");
+ALIGNED_OTR_PATH(sDekuEyesLeftTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesLeftTex");
+ALIGNED_OTR_PATH(sDekuEyesUpTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesUpTex");
+ALIGNED_OTR_PATH(sDekuEyesDownTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesDownTex");
+ALIGNED_OTR_PATH(sDekuEyesWincingTex, "__OTR__objects/object_link_nuts/gLinkDekuEyesWincingTex");
+
+ALIGNED_OTR_PATH(sDekuMouthClosedTex, "__OTR__objects/object_link_nuts/gLinkDekuMouthClosedTex");
+ALIGNED_OTR_PATH(sDekuMouthHalfTex, "__OTR__objects/object_link_nuts/gLinkDekuMouthHalfTex");
+ALIGNED_OTR_PATH(sDekuMouthOpenTex, "__OTR__objects/object_link_nuts/gLinkDekuMouthOpenTex");
+ALIGNED_OTR_PATH(sDekuMouthSmileTex, "__OTR__objects/object_link_nuts/gLinkDekuMouthSmileTex");
+
+ALIGNED_OTR_PATH(sGoronMouthClosedTex, "__OTR__objects/object_link_goron/gLinkGoronMouthClosedTex");
+ALIGNED_OTR_PATH(sGoronMouthHalfTex, "__OTR__objects/object_link_goron/gLinkGoronMouthHalfTex");
+ALIGNED_OTR_PATH(sGoronMouthOpenTex, "__OTR__objects/object_link_goron/gLinkGoronMouthOpenTex");
+ALIGNED_OTR_PATH(sGoronMouthSmileTex, "__OTR__objects/object_link_goron/gLinkGoronMouthSmileTex");
+
+static const char* sFDEyesTextures[PLAYER_EYES_MAX] = {
+    sFDEyesOpenTex,
+    sFDEyesHalfTex,
+    sFDEyesClosedTex,
+    sFDEyesRightTex,
+    sFDEyesLeftTex,
+    sFDEyesUpTex,
+    sFDEyesDownTex,
+    sFDEyesWincingTex,
+};
+
+static const char* sFDMouthTextures[PLAYER_MOUTH_MAX] = {
+    sFDMouthClosedTex,
+    sFDMouthHalfTex,
+    sFDMouthOpenTex,
+    sFDMouthSmileTex,
+};
+
+static const char* sDekuEyesTextures[PLAYER_EYES_MAX] = {
+    sDekuEyesOpenTex,   sDekuEyesHalfTex,
+    sDekuEyesClosedTex, sDekuEyesRightTex,
+    sDekuEyesLeftTex,   sDekuEyesUpTex,
+    sDekuEyesDownTex,   sDekuEyesWincingTex,
+};
+
+static const char* sDekuMouthTextures[PLAYER_MOUTH_MAX] = {
+    sDekuMouthClosedTex,
+    sDekuMouthHalfTex,
+    sDekuMouthOpenTex,
+    sDekuMouthSmileTex,
+};
+
+static const char* sGoronMouthTextures[PLAYER_MOUTH_MAX] = {
+    sGoronMouthClosedTex,
+    sGoronMouthHalfTex,
+    sGoronMouthOpenTex,
+    sGoronMouthSmileTex,
+};
+
+#undef ALIGNED_OTR_PATH
+#else
 static const char* sFDEyesTextures[PLAYER_EYES_MAX] = {
     "__OTR__objects/object_link_boy/gLinkFierceDeityEyesOpenTex",
     "__OTR__objects/object_link_boy/gLinkFierceDeityEyesHalfTex",
@@ -46,6 +123,7 @@ static const char* sGoronMouthTextures[PLAYER_MOUTH_MAX] = {
     "__OTR__objects/object_link_goron/gLinkGoronMouthOpenTex",
     "__OTR__objects/object_link_goron/gLinkGoronMouthSmileTex",
 };
+#endif
 
 static s32 sFacePatchState = 0;
 
