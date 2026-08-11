@@ -27,7 +27,7 @@ Q: The game opened once, but now it's just a black screen. <br>
   A: Reinstall and don't raise MSAA above 1 in Settings->Graphics <br><br>
 
 Q: The GUI scaling is too big/too small. <br>
-  A: There is no GUI scaling option implemented yet. This will come in a future update. <br><br>
+  A: ~~There is no GUI scaling option implemented yet. This will come in a future update.~~ <br><br>
 
 Q: Gyro Aim? <br>
   A: It works. You just need to press any controller button when it asks for input. It will default to your phone's gyro if the controller doesn't support it. <br> <br>
@@ -38,7 +38,7 @@ Q: My controller is not doing anything. <br>
 <b>Known Bugs</b>:<br>
 Orientation Lock does not work. https://github.com/libsdl-org/SDL/issues/6090<br>
 Near-plane clipping when the camera is close to walls.<br>
-Picto box images render black. <br>
+~~Picto box images render black.~~ <br>
 
 <h3>Build Instructions:</h3>
 1. Edit the app/build.gradle file to point to your ndk folder. NDK 26+ tested as working.<br>

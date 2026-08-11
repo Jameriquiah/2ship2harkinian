@@ -291,40 +291,48 @@ void Message_ResetOcarinaButtonState(PlayState* play) {
 bool Message_ShouldAdvance(PlayState* play) {
     MessageContext* msgCtx = &play->msgCtx;
     Input* controller = CONTROLLER1(&play->state);
+    bool shouldAdvance;
 
     if ((msgCtx->textboxEndType == TEXTBOX_ENDTYPE_TWO_CHOICE) ||
         (msgCtx->textboxEndType == TEXTBOX_ENDTYPE_THREE_CHOICE)) {
         if (CHECK_BTN_ALL(controller->press.button, BTN_A)) {
             Audio_PlaySfx(NA_SE_SY_MESSAGE_PASS);
         }
-        return CHECK_BTN_ALL(controller->press.button, BTN_A);
+        shouldAdvance = CHECK_BTN_ALL(controller->press.button, BTN_A);
     } else {
         if (CHECK_BTN_ALL(controller->press.button, BTN_A) || CHECK_BTN_ALL(controller->press.button, BTN_B) ||
             CHECK_BTN_ALL(controller->press.button, BTN_CUP)) {
             Audio_PlaySfx(NA_SE_SY_MESSAGE_PASS);
         }
-        return CHECK_BTN_ALL(controller->press.button, BTN_A) || CHECK_BTN_ALL(controller->press.button, BTN_B) ||
-               // 2S2H [Enhancement] When fast text is on, we want to check if B is held instead of only if it was just
-               // pressed
-               (CVarGetInteger("gEnhancements.Dialogue.FastText", 0) && CHECK_BTN_ALL(controller->cur.button, BTN_B)) ||
-               CHECK_BTN_ALL(controller->press.button, BTN_CUP);
+        shouldAdvance =
+            CHECK_BTN_ALL(controller->press.button, BTN_A) || CHECK_BTN_ALL(controller->press.button, BTN_B) ||
+            // 2S2H [Enhancement] When fast text is on, we want to check if B is held instead of only if it was just
+            // pressed
+            (CVarGetInteger("gEnhancements.Dialogue.FastText", 0) && CHECK_BTN_ALL(controller->cur.button, BTN_B)) ||
+            CHECK_BTN_ALL(controller->press.button, BTN_CUP);
     }
+
+    return GameInteractor_Should(VB_MSG_ADVANCE, shouldAdvance);
 }
 
 bool Message_ShouldAdvanceSilent(PlayState* play) {
     MessageContext* msgCtx = &play->msgCtx;
     Input* controller = CONTROLLER1(&play->state);
+    bool shouldAdvance;
 
     if ((msgCtx->textboxEndType == TEXTBOX_ENDTYPE_TWO_CHOICE) ||
         (msgCtx->textboxEndType == TEXTBOX_ENDTYPE_THREE_CHOICE)) {
-        return CHECK_BTN_ALL(controller->press.button, BTN_A);
+        shouldAdvance = CHECK_BTN_ALL(controller->press.button, BTN_A);
     } else {
-        return CHECK_BTN_ALL(controller->press.button, BTN_A) || CHECK_BTN_ALL(controller->press.button, BTN_B) ||
-               // 2S2H [Enhancement] When fast text is on, we want to check if B is held instead of only if it was just
-               // pressed
-               (CVarGetInteger("gEnhancements.Dialogue.FastText", 0) && CHECK_BTN_ALL(controller->cur.button, BTN_B)) ||
-               CHECK_BTN_ALL(controller->press.button, BTN_CUP);
+        shouldAdvance =
+            CHECK_BTN_ALL(controller->press.button, BTN_A) || CHECK_BTN_ALL(controller->press.button, BTN_B) ||
+            // 2S2H [Enhancement] When fast text is on, we want to check if B is held instead of only if it was just
+            // pressed
+            (CVarGetInteger("gEnhancements.Dialogue.FastText", 0) && CHECK_BTN_ALL(controller->cur.button, BTN_B)) ||
+            CHECK_BTN_ALL(controller->press.button, BTN_CUP);
     }
+
+    return GameInteractor_Should(VB_MSG_ADVANCE, shouldAdvance);
 }
 
 void Message_CloseTextbox(PlayState* play) {
@@ -4298,6 +4306,10 @@ void Message_DrawOcarinaButtons(PlayState* play, Gfx** gfxP) {
 }
 
 void Message_DrawText(PlayState* play, Gfx** gfxP) {
+    if (!GameInteractor_Should(VB_DRAW_OCARINA_STAFF, true)) {
+        return;
+    }
+
     if ((gSaveContext.options.language == LANGUAGE_JPN) && !play->msgCtx.textIsCredits) {
         Message_DrawTextDefault(play, gfxP);
     } else if (play->msgCtx.textIsCredits) {
@@ -4424,7 +4436,9 @@ void Message_DrawMain(PlayState* play, Gfx** gfxP) {
                     (((msgCtx->msgMode >= MSGMODE_TEXT_BOX_GROWING) && (msgCtx->msgMode <= MSGMODE_TEXT_DONE)) ||
                      ((msgCtx->msgMode >= MSGMODE_NEW_CYCLE_0) && (msgCtx->msgMode <= MSGMODE_OWL_SAVE_2))) &&
                     (D_801CFC78[msgCtx->textBoxType] != 0xE)) {
-                    Message_DrawTextBox(play, &gfx);
+                    if (GameInteractor_Should(VB_DRAW_OCARINA_STAFF, true)) {
+                        Message_DrawTextBox(play, &gfx);
+                    }
                 }
             }
         }
@@ -4495,8 +4509,10 @@ void Message_DrawMain(PlayState* play, Gfx** gfxP) {
             case MSGMODE_TEXT_AWAIT_INPUT:
             case MSGMODE_TEXT_AWAIT_NEXT:
                 Message_DrawText(play, &gfx);
-                Message_DrawTextboxIcon(play, &gfx, 158,
-                                        (s16)(D_801D03A8[msgCtx->textBoxType] + msgCtx->textboxYTarget));
+                if (GameInteractor_Should(VB_DRAW_OCARINA_STAFF, true)) {
+                    Message_DrawTextboxIcon(play, &gfx, 158,
+                                            (s16)(D_801D03A8[msgCtx->textBoxType] + msgCtx->textboxYTarget));
+                }
                 break;
 
             case MSGMODE_OCARINA_STARTING:
@@ -4610,6 +4626,8 @@ void Message_DrawMain(PlayState* play, Gfx** gfxP) {
                 }
 
                 msgCtx->songPlayed = msgCtx->ocarinaStaff->state;
+
+                GameInteractor_Should(VB_OVERRIDE_OCARINA_STAFF_STATE, false, msgCtx->ocarinaStaff);
 
                 bool vanillaOwnedSongCheck = (msgCtx->ocarinaStaff->state == OCARINA_SONG_SCARECROW_SPAWN) ||
                                              (msgCtx->ocarinaStaff->state == OCARINA_SONG_INVERTED_TIME) ||
@@ -5317,13 +5335,17 @@ void Message_DrawMain(PlayState* play, Gfx** gfxP) {
                     case TEXTBOX_ENDTYPE_INPUT_BANK:
                     case TEXTBOX_ENDTYPE_INPUT_DOGGY_RACETRACK_BET:
                     default:
-                        Message_DrawTextboxIcon(play, &gfx, 158,
-                                                (s16)(D_801D03A8[msgCtx->textBoxType] + msgCtx->textboxYTarget));
+                        if (GameInteractor_Should(VB_DRAW_OCARINA_STAFF, true)) {
+                            Message_DrawTextboxIcon(play, &gfx, 158,
+                                                    (s16)(D_801D03A8[msgCtx->textBoxType] + msgCtx->textboxYTarget));
+                        }
                         break;
 
                     case TEXTBOX_ENDTYPE_EVENT2:
-                        Message_DrawTextboxIcon(play, &gfx, 158,
-                                                (s16)(D_801D03A8[msgCtx->textBoxType] + msgCtx->textboxYTarget));
+                        if (GameInteractor_Should(VB_DRAW_OCARINA_STAFF, true)) {
+                            Message_DrawTextboxIcon(play, &gfx, 158,
+                                                    (s16)(D_801D03A8[msgCtx->textBoxType] + msgCtx->textboxYTarget));
+                        }
                         break;
                 }
                 break;
@@ -5354,7 +5376,10 @@ void Message_DrawMain(PlayState* play, Gfx** gfxP) {
                 break;
         }
     }
-    Message_DrawOcarinaButtons(play, &gfx);
+    if (GameInteractor_Should(VB_DRAW_OCARINA_STAFF, true)) {
+        Message_DrawOcarinaButtons(play, &gfx);
+    }
+
     *gfxP = gfx;
 }
 

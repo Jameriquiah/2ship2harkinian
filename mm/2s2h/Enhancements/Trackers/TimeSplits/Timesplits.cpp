@@ -15,6 +15,8 @@ uint64_t GetUnixTimestamp();
 #include "assets/archives/icon_item_static/icon_item_static_yar.h"
 #include "GameInteractor/GameInteractor.h"
 
+#include <fast/Fast3dGui.h>
+
 #define BLANK_SPLIT "--:--:--.-"
 
 // ImVec4 Colors
@@ -139,7 +141,7 @@ void TableCellCenteredText(ImVec4 color, const char* text) {
     float textHeight = ImGui::GetTextLineHeight();
     float offsetY = (32.0f - textHeight + 10.0f) * 0.5f;
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-    ImGui::TextColored(color, text);
+    ImGui::TextColored(color, "%s", text);
 }
 
 void SplitsPushImageButtonStyle() {
@@ -193,9 +195,11 @@ void DrawSplitsList(bool isMain) {
                 SplitsPushImageButtonStyle();
                 if (ImGui::ImageButton(
                         std::to_string(i).c_str(),
-                        Ship::Context::GetInstance()->GetWindow()->GetGui()->GetTextureByName(
-                            splitList[i].splitType == SPLIT_TYPE_NORMAL ? GetItemImageById(splitList[i].splitId)
-                                                                        : gPauseUnusedCursorTex),
+                        std::dynamic_pointer_cast<Fast::Fast3dGui>(
+                            Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+                            ->GetTextureByName(splitList[i].splitType == SPLIT_TYPE_NORMAL
+                                                   ? GetItemImageById(splitList[i].splitId)
+                                                   : gPauseUnusedCursorTex),
                         splitList[i].splitType == SPLIT_TYPE_NORMAL ? GetItemImageSizeById(splitList[i].splitId)
                                                                     : ImVec2(32.0f, 32.0f),
                         ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0),
@@ -226,7 +230,7 @@ void DrawSplitsList(bool isMain) {
                     !gPlayState ? ImGui::TextColored(COLOR_WHITE, BLANK_SPLIT)
                     : i < comparisonList.size()
                         ? ImGui::TextColored(
-                              GetComparisonTimeTextDisplay(splitList[i], comparisonList[i]).colorDisplay,
+                              GetComparisonTimeTextDisplay(splitList[i], comparisonList[i]).colorDisplay, "%s",
                               Ship_FormatTimeDisplay(
                                   GetComparisonTimeTextDisplay(splitList[i], comparisonList[i]).timeDisplay)
                                   .c_str())
@@ -237,7 +241,7 @@ void DrawSplitsList(bool isMain) {
                 ImGui::TableNextColumn();
                 TableCellCenteredText(COLOR_WHITE, Ship_FormatTimeDisplay(splitList[i].splitPreviousBest).c_str());
                 if (CVarGetInteger("gSettings.TimeSplits.Compare", 0) && comparisonList.size() != 0) {
-                    ImGui::TextColored(COLOR_GREY,
+                    ImGui::TextColored(COLOR_GREY, "%s",
                                        i < comparisonList.size()
                                            ? Ship_FormatTimeDisplay(comparisonList[i].splitPreviousBest).c_str()
                                            : "No Data");

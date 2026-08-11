@@ -25,14 +25,22 @@ static const std::vector<std::string> flavorTexts = {
     "Get it while it's hot!",         "Don't miss out on this deal!",
 };
 
+bool CanBePurchased(RandoSaveCheck randoSaveCheck, RandoCheckId randoCheckId) {
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId);
+    return Rando::IsItemObtainable(randoItemId, randoCheckId) &&
+           !(randoItemId >= RI_RUPEE_BLUE && randoItemId <= RI_RUPEE_SILVER &&
+             RANDO_SAVE_OPTIONS[RO_PURCHASE_INFINITE_RUPEES] == RO_GENERIC_OFF && randoSaveCheck.cycleObtained);
+}
+
 void EnGirlA_RandoDrawFunc(Actor* actor, PlayState* play) {
     EnGirlA* enGirlA = (EnGirlA*)actor;
 
     auto randoSaveCheck = RANDO_SAVE_CHECKS[actor->world.rot.z];
+    RandoCheckId randoCheckId = (RandoCheckId)actor->world.rot.z;
 
     Matrix_RotateYS(enGirlA->rotY, MTXMODE_APPLY);
 
-    Rando::DrawItem(randoSaveCheck.randoItemId, (RandoCheckId)actor->world.rot.z, actor);
+    Rando::DrawItem(Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), randoCheckId, actor);
 }
 
 void EnGirlA_RandoBought(PlayState* play, EnGirlA* enGirlA) {
@@ -42,8 +50,9 @@ void EnGirlA_RandoBought(PlayState* play, EnGirlA* enGirlA) {
 
 void EnGirlA_RandoRestock(PlayState* play, EnGirlA* enGirlA) {
     auto randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
+    RandoCheckId randoCheckId = (RandoCheckId)enGirlA->actor.world.rot.z;
 
-    if (Rando::IsItemObtainable(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z)) {
+    if (CanBePurchased(randoSaveCheck, randoCheckId)) {
         enGirlA->isOutOfStock = false;
         enGirlA->actor.draw = EnGirlA_RandoDrawFunc;
     }
@@ -55,8 +64,9 @@ s32 EnGirlA_RandoCanBuyFunc(PlayState* play, EnGirlA* enGirlA) {
     }
 
     auto randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
+    RandoCheckId randoCheckId = (RandoCheckId)enGirlA->actor.world.rot.z;
 
-    if (!Rando::IsItemObtainable(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z)) {
+    if (!CanBePurchased(randoSaveCheck, randoCheckId)) {
         return CANBUY_RESULT_CANNOT_GET_NOW;
     }
 
@@ -65,11 +75,14 @@ s32 EnGirlA_RandoCanBuyFunc(PlayState* play, EnGirlA* enGirlA) {
 
 void EnGirlA_RandoBuyFunc(PlayState* play, EnGirlA* enGirlA) {
     auto& randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
-    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z);
-    randoSaveCheck.obtained = true;
+    RandoCheckId randoCheckId = (RandoCheckId)enGirlA->actor.world.rot.z;
+    RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId);
+    randoSaveCheck.obtained = randoSaveCheck.cycleObtained = true;
     Rupees_ChangeBy(-play->msgCtx.unk1206C);
     if (randoItemId == RI_TRAP) {
         RollTrapType();
+    } else if (randoItemId == RI_JUNK) {
+        randoItemId = Rando::CurrentJunkItem(randoCheckId);
     }
     Rando::GiveItem(randoItemId);
 }
@@ -103,11 +116,10 @@ void EnGirlA_RandoInit(EnGirlA* enGirlA, PlayState* play) {
     enGirlA->initialRotY = enGirlA->actor.shape.rot.y;
 
     auto randoSaveCheck = RANDO_SAVE_CHECKS[enGirlA->actor.world.rot.z];
+    RandoCheckId randoCheckId = (RandoCheckId)enGirlA->actor.world.rot.z;
 
-    if (!Rando::IsItemObtainable(randoSaveCheck.randoItemId, (RandoCheckId)enGirlA->actor.world.rot.z) &&
-        randoSaveCheck.obtained) {
-        enGirlA->isOutOfStock = true;
-        enGirlA->actor.draw = NULL;
+    if (!CanBePurchased(randoSaveCheck, randoCheckId)) {
+        EnGirlA_RandoBought(play, enGirlA);
     } else {
         enGirlA->isOutOfStock = false;
         enGirlA->actor.draw = EnGirlA_RandoDrawFunc;
@@ -115,25 +127,27 @@ void EnGirlA_RandoInit(EnGirlA* enGirlA, PlayState* play) {
 }
 
 void renameStolenBombBag(u16* textId, bool* loadFromMessageTable) {
-    auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
+    RandoCheckId randoCheckId = RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM;
+    auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
     auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
     auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
     entry.msg = "Tonight's special, stolen from the Bomb Shop: %r{{itemName}}%w. Check it out!\x19\xA8";
-    CustomMessage::Replace(
-        &entry.msg, "{{itemName}}",
-        Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, false, RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM));
+    CustomMessage::Replace(&entry.msg, "{{itemName}}",
+                           Rando::StaticData::GetItemName(Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId),
+                                                          false, randoCheckId));
     CustomMessage::LoadCustomMessageIntoFont(entry);
     *loadFromMessageTable = false;
 }
 
 void renameSpecialBargain(u16* textId, bool* loadFromMessageTable) {
-    auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_CURIOSITY_SHOP_SPECIAL_ITEM];
+    RandoCheckId randoCheckId = RC_CURIOSITY_SHOP_SPECIAL_ITEM;
+    auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
     auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
     auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
     entry.msg = "Tonight's bargain: %r{{itemName}}%w. Check it out!\x19\xA8";
-    CustomMessage::Replace(
-        &entry.msg, "{{itemName}}",
-        Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, false, RC_CURIOSITY_SHOP_SPECIAL_ITEM));
+    CustomMessage::Replace(&entry.msg, "{{itemName}}",
+                           Rando::StaticData::GetItemName(Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId),
+                                                          false, randoCheckId));
     CustomMessage::LoadCustomMessageIntoFont(entry);
     *loadFromMessageTable = false;
 }
@@ -289,7 +303,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         }
 
         auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
-        auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
+        RandoItemId randoItemId = Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId);
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         // Not using formatting here, to ensure the item name and price stay on one line
@@ -297,10 +311,10 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         entry.msg = "\x01{{itemName}}: {{rupees}} Rupees\x11\x00";
         entry.msg += '\x00';
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, false, randoCheckId));
+                               Rando::StaticData::GetItemName(randoItemId, false, randoCheckId));
         CustomMessage::Replace(&entry.msg, "{{rupees}}", std::to_string(randoSaveCheck.price));
 
-        if (!Rando::IsItemObtainable(randoSaveCheck.randoItemId, randoCheckId) && randoSaveCheck.obtained) {
+        if (!CanBePurchased(randoSaveCheck, randoCheckId)) {
             entry.msg += "Out of Stock";
         } else {
             entry.msg += flavorTexts[rand() % flavorTexts.size()];
@@ -320,7 +334,6 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         }
 
         auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
-        auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         // Not using formatting here, to ensure the item name and price stay on one line
@@ -328,7 +341,8 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         entry.firstItemCost = randoSaveCheck.price;
         entry.msg = "\x01{{itemName}}: {{rupees}} Rupees\x02\x11\xC2I'll buy it\x11No thanks\xBF";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, false, randoCheckId));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), false, randoCheckId));
         CustomMessage::Replace(&entry.msg, "{{rupees}}", std::to_string(randoSaveCheck.price));
 
         CustomMessage::LoadCustomMessageIntoFont(entry);
@@ -344,7 +358,6 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         }
 
         auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
-        auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         // Not using formatting here, to ensure the item name and price stay on one line
@@ -354,7 +367,8 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         entry.msg += '\x00';
         entry.msg += "I need a mushroom to make this.\x1A";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, false, randoCheckId));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), false, randoCheckId));
         CustomMessage::Replace(&entry.msg, "{{itemPrice}}", std::to_string(randoSaveCheck.price));
         CustomMessage::LoadCustomMessageIntoFont(entry);
         *loadFromMessageTable = false;
@@ -372,7 +386,8 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "I used this to make %r{{itemName}}%w, take it!\x19";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, true, randoCheckId));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), true, randoCheckId));
 
         // Mark the item as eligible for purchase
         randoSaveCheck.eligible = true;
@@ -383,8 +398,7 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
             (EnTrt*)Actor_FindNearby(gPlayState, &GET_PLAYER(gPlayState)->actor, ACTOR_EN_TRT, ACTORCAT_NPC, 100.0f);
         if (enTrt != nullptr) {
             EnGirlA* enGirlA = enTrt->items[2];
-            enGirlA->isOutOfStock = true;
-            enGirlA->actor.draw = NULL;
+            EnGirlA_RandoBought(gPlayState, enGirlA);
         }
 
         CustomMessage::LoadCustomMessageIntoFont(entry);
@@ -393,39 +407,42 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
 
     // Bomb Shop "We're expecting new stock" (hint)
     COND_ID_HOOK(OnOpenText, 0x648, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
-        auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
+        RandoCheckId randoCheckId = RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM;
+        auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg =
             "If nothing devastating happens to Mommy tonight, we should be able to sell %r{{itemName}}%w.\x19\xA8";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, true,
-                                                              RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), true, randoCheckId));
         CustomMessage::LoadCustomMessageIntoFont(entry);
         *loadFromMessageTable = false;
     });
 
     // Bomb Shop "We should have had..."
     COND_ID_HOOK(OnOpenText, 0x64A, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
-        auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
+        RandoCheckId randoCheckId = RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM;
+        auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
         auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "Thanks to a mishap, we did not receive our %r{{itemName}}%w stock. Maybe next time...\x19\xA8";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, true,
-                                                              RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), true, randoCheckId));
         CustomMessage::LoadCustomMessageIntoFont(entry);
         *loadFromMessageTable = false;
     });
 
     // Bomb Shop "I thought we could finally sell"
     COND_ID_HOOK(OnOpenText, 0x660, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
-        auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
+        RandoCheckId randoCheckId = RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM;
+        auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "It's over... Now we'll never sell %r{{itemName}}%w...\x19\xA8";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, true,
-                                                              RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), true, randoCheckId));
 
         CustomMessage::LoadCustomMessageIntoFont(entry);
         *loadFromMessageTable = false;
@@ -433,14 +450,15 @@ void Rando::ActorBehavior::InitEnGirlABehavior() {
 
     // Bomb Shop "We just got a larger bomb bag in stock"
     COND_ID_HOOK(OnOpenText, 0x649, IS_RANDO, [](u16* textId, bool* loadFromMessageTable) {
-        auto randoSaveCheck = RANDO_SAVE_CHECKS[RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM];
+        RandoCheckId randoCheckId = RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM;
+        auto randoSaveCheck = RANDO_SAVE_CHECKS[randoCheckId];
         auto randoStaticItem = Rando::StaticData::Items[randoSaveCheck.randoItemId];
 
         auto entry = CustomMessage::LoadVanillaMessageTableEntry(*textId);
         entry.msg = "We just got some new stock: %r{{itemName}}%w.\x19\xA8";
         CustomMessage::Replace(&entry.msg, "{{itemName}}",
-                               Rando::StaticData::GetItemName(randoSaveCheck.randoItemId, true,
-                                                              RC_BOMB_SHOP_ITEM_04_OR_CURIOSITY_SHOP_ITEM));
+                               Rando::StaticData::GetItemName(
+                                   Rando::ConvertItem(randoSaveCheck.randoItemId, randoCheckId), true, randoCheckId));
 
         CustomMessage::LoadCustomMessageIntoFont(entry);
         *loadFromMessageTable = false;

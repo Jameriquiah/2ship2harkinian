@@ -146,6 +146,8 @@ static RegisterShipInitFunc refreshInitFunc(
             RefreshObtainableTrapItems();
         });
 
+        allTrapItems.clear();
+
         if (IS_RANDO) {
             for (auto& [randoCheckId, _] : Rando::StaticData::Checks) {
                 RandoSaveCheck saveCheck = RANDO_SAVE_CHECKS[randoCheckId];
@@ -163,10 +165,10 @@ RandoItemId Rando::CurrentJunkItem(RandoCheckId randoCheckId) {
     if (CVarGetInteger("gRando.JunkItems", 0) == 0) {
         Ship_Random_Seed(gSaveContext.save.shipSaveInfo.rando.finalSeed + randoCheckId +
                          (gPlayState->gameplayFrames / 30));
-        return obtainableJunkItems[Ship_Random(0, obtainableJunkItems.size() - 1)];
+        return obtainableJunkItems[Ship_Random(0, obtainableJunkItems.size())];
     } else {
         Ship_Random_Seed(gSaveContext.save.shipSaveInfo.rando.finalSeed + randoCheckId);
-        return obtainableJunkItems[Ship_Random(0, obtainableJunkItems.size() - 1)];
+        return obtainableJunkItems[Ship_Random(0, obtainableJunkItems.size())];
     }
 }
 
@@ -178,7 +180,7 @@ RandoItemId Rando::CurrentTrapItem(RandoCheckId randoCheckId) {
 
         Ship_Random_Seed(gSaveContext.save.shipSaveInfo.rando.finalSeed + randoCheckId);
 
-        return obtainableTrapItems[Ship_Random(0, obtainableTrapItems.size() - 1)];
+        return obtainableTrapItems[Ship_Random(0, obtainableTrapItems.size())];
     } else {
         if (allTrapItems.size() == 0) {
             return RI_RUPEE_SILVER;
@@ -186,7 +188,7 @@ RandoItemId Rando::CurrentTrapItem(RandoCheckId randoCheckId) {
 
         Ship_Random_Seed(gSaveContext.save.shipSaveInfo.rando.finalSeed + randoCheckId);
 
-        return allTrapItems[Ship_Random(0, allTrapItems.size() - 1)];
+        return allTrapItems[Ship_Random(0, allTrapItems.size())];
     }
 }
 
@@ -211,6 +213,10 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
         case RI_PROGRESSIVE_WALLET:
             if (hasObtainedCheck) {
                 return false;
+            } else if (RANDO_SAVE_OPTIONS[RO_SHUFFLE_TYCOON_WALLET] == RO_GENERIC_YES) {
+                if (CUR_UPG_VALUE(UPG_WALLET) >= 3) {
+                    return false;
+                }
             } else if (CUR_UPG_VALUE(UPG_WALLET) >= 2) {
                 return false;
             }
@@ -222,6 +228,11 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
             break;
         case RI_WALLET_GIANT:
             if (CUR_UPG_VALUE(UPG_WALLET) >= 2) {
+                return false;
+            }
+            break;
+        case RI_WALLET_TYCOON:
+            if (CUR_UPG_VALUE(UPG_WALLET) >= 3) {
                 return false;
             }
             break;
@@ -495,7 +506,10 @@ bool Rando::IsItemObtainable(RandoItemId randoItemId, RandoCheckId randoCheckId)
         case RI_SONG_OATH:
             return !CHECK_QUEST_ITEM(QUEST_SONG_OATH);
         case RI_SONG_SARIA:
-            return !CHECK_QUEST_ITEM(QUEST_SONG_SARIA);
+            if (hasObtainedCheck) {
+                return false;
+            }
+            return true;
         case RI_SONG_SOARING:
             return !CHECK_QUEST_ITEM(QUEST_SONG_SOARING);
         case RI_SONG_SONATA:
@@ -718,6 +732,8 @@ RandoItemId Rando::ConvertItem(RandoItemId randoItemId, RandoCheckId randoCheckI
                     return RI_WALLET_ADULT;
                 } else if (CUR_UPG_VALUE(UPG_WALLET) == 1) {
                     return RI_WALLET_GIANT;
+                } else if (CUR_UPG_VALUE(UPG_WALLET) == 2) {
+                    return RI_WALLET_TYCOON;
                 }
                 // Shouldn't happen, just in case
                 assert(false);

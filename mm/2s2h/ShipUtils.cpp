@@ -18,6 +18,8 @@
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include "assets/overlays/ovl_En_Syateki_Okuta/ovl_En_Syateki_Okuta.h"
 
+#include <fast/Fast3dGui.h>
+
 extern "C" {
 #include "z64.h"
 #include "functions.h"
@@ -91,7 +93,7 @@ extern u16 sOwlWarpEntrancesForMods[OWL_WARP_MAX - 1] = {
 };
 
 // These textures are not in existing lists that we iterate over.
-std::array<const char*, 32> miscellaneousTextures = {
+std::array<const char*, 33> miscellaneousTextures = {
     gArcheryScoreIconTex,
     gBarrelTrackerIcon,
     gChestTrackerIcon,
@@ -110,6 +112,7 @@ std::array<const char*, 32> miscellaneousTextures = {
     gStrayFairyWoodfallIconTex,
     gTimerClockIconTex,
     gTriforcePieceTex,
+    gFlippersTex,
     gWorldMapOwlFaceTex,
     gameplay_keep_Tex_053140,
     gDungeonMapSkullTex,
@@ -348,31 +351,35 @@ extern uint32_t Ship_Hash(std::string str) {
 void LoadGuiTextures() {
     for (const TexturePtr entry : gItemIcons) {
         auto path = static_cast<const char*>(entry);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(path, path, ImVec4(1, 1, 1, 1));
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+            ->LoadGuiTexture(path, path, "", ImVec4(1, 1, 1, 1));
     }
     for (const TexturePtr entry : gQuestIcons) {
         auto path = static_cast<const char*>(entry);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(path, path, ImVec4(1, 1, 1, 1));
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+            ->LoadGuiTexture(path, path, "", ImVec4(1, 1, 1, 1));
     }
     for (const TexturePtr entry : gBombersNotebookPhotos) {
         auto path = static_cast<const char*>(entry);
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(path, path, ImVec4(1, 1, 1, 1));
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+            ->LoadGuiTexture(path, path, "", ImVec4(1, 1, 1, 1));
     }
     for (const auto entry : miscellaneousTextures) {
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(entry, entry, ImVec4(1, 1, 1, 1));
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+            ->LoadGuiTexture(entry, entry, "", ImVec4(1, 1, 1, 1));
     }
     for (const auto entry : digitList) {
-        Ship::Context::GetInstance()->GetWindow()->GetGui()->LoadGuiTexture(entry, entry, ImVec4(1, 1, 1, 1));
+        std::dynamic_pointer_cast<Fast::Fast3dGui>(Ship::Context::GetRawInstance()->GetWindow()->GetGui())
+            ->LoadGuiTexture(entry, entry, "", ImVec4(1, 1, 1, 1));
     }
 }
 
-std::string convertEnumToReadableName(const std::string& input) {
+std::string convertEnumToReadableName(const std::string& input, const std::string& prefix) {
     std::string result;
     std::string content = input;
 
-    // Step 1: Remove "RC_" prefix if present
-    const std::string prefix = "RC_";
-    if (content.rfind(prefix, 0) == 0) {
+    // Step 1: Remove prefix if present
+    if (!prefix.empty() && content.rfind(prefix, 0) == 0) {
         content = content.substr(prefix.size());
     }
 
@@ -420,4 +427,39 @@ std::string GetActorCategoryName(u8 category) {
         return actorCategoryNames[category];
     }
     return "Unknown";
+}
+
+extern "C" {
+Vtx sCycleExtraItemVtx[8] = {
+    // Left Item
+    VTX(-48, 16, 0, 0 << 5, 0 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(-16, 16, 0, 32 << 5, 0 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(-48, -16, 0, 0 << 5, 32 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(-16, -16, 0, 32 << 5, 32 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    // Right Item
+    VTX(16, 16, 0, 0 << 5, 0 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(48, 16, 0, 32 << 5, 0 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(16, -16, 0, 0 << 5, 32 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(48, -16, 0, 32 << 5, 32 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+};
+
+// Vertices for A button indicator (coordinates 1.5x larger than texture size)
+Vtx sCycleAButtonVtx[4] = {
+    VTX(-18, 12, 0, 0 << 5, 0 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(18, 12, 0, 24 << 5, 0 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(-18, -12, 0, 0 << 5, 16 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+    VTX(18, -12, 0, 24 << 5, 16 << 5, 0xFF, 0xFF, 0xFF, 0xFF),
+};
+
+void Ship_DrawKaleidoCycleAButtonPrompt(PlayState* play, u8 alpha) {
+    Color_RGB8 aButtonColor = { 0, 100, 255 };
+
+    OPEN_DISPS(play->state.gfxCtx);
+    gSPVertex(POLY_OPA_DISP++, (uintptr_t)sCycleAButtonVtx, 4, 0);
+    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, aButtonColor.r, aButtonColor.g, aButtonColor.b, alpha);
+    gDPLoadTextureBlock(POLY_OPA_DISP++, gABtnSymbolTex, G_IM_FMT_IA, G_IM_SIZ_8b, 24, 16, 0,
+                        G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMIRROR | G_TX_CLAMP, 4, 4, G_TX_NOLOD, G_TX_NOLOD);
+    gSP1Quadrangle(POLY_OPA_DISP++, 0, 2, 3, 1, 0);
+    CLOSE_DISPS(play->state.gfxCtx);
+}
 }

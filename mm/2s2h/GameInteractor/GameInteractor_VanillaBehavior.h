@@ -73,6 +73,14 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_APPLY_BOMB_BILLBOARDING,
+
+    // #### `result`
+    // ```c
     // cylinderOc != NULL
     // ```
     // #### `args`
@@ -111,6 +119,22 @@ typedef enum {
     // #### `args`
     // - `*Actor`
     VB_BARREL_OR_CRATE_DROP_COLLECTIBLE,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*Actor` (ObjComb)
+    VB_BEEHIVE_ALREADY_BROKEN,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*Actor` (ObjComb)
+    VB_BEEHIVE_SPAWN_ACTOR,
 
     // #### `result`
     // ```c
@@ -307,8 +331,24 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - None
+    VB_CONSUME_EPONA_CARROT,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `*EnGinkoMan`
     VB_CONTINUE_BANKER_DIALOGUE,
+
+    // #### `result`
+    // ```c
+    // (bean->unk_1E4 == 2) || (bean->unk_1E4 == 1)
+    // ```
+    // #### `args`
+    // - `ObjBean*`
+    VB_COUNT_BURROWED_BUGS,
 
     // #### `result`
     // ```c
@@ -347,6 +387,15 @@ typedef enum {
     // - `*f32`
     // - `f32 sDamageMultipliers[16]`
     VB_DAMAGE_MULTIPLIER,
+
+    // #### `result`
+    // ```c
+    // this->animIndex == EN_DNO_ANIM_SHOCK_LOOP
+    // ```
+    // #### `args`
+    // - `*EnDno` (this)
+    // - `*u8` (changeAnim)
+    VB_DEKU_BUTLER_CHANGE_SHOCK_ANIMATION,
 
     // #### `result`
     // ```c
@@ -454,6 +503,16 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - `s16` (button)
+    // - `s16` (alpha)
+    // - `bool` (isDpad)
+    VB_DRAW_HUD_AMMO_COUNT,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `*Actor`
     VB_DRAW_LOCK_ON_ARROW,
 
@@ -495,7 +554,18 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - `*FileSelectState`
+    VB_FILE_SELECT_ROTATE_TO_NAME_ENTRY,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `*ItemId`
+    // - `s32` (slot)
+    // - `s32` (isDpad)
+    // - `s32` (pageIndex)
     VB_DRAW_ITEM_EQUIPPED_OUTLINE,
 
     // #### `result`
@@ -522,6 +592,30 @@ typedef enum {
     // #### `args`
     // - `*DmStk` (unused)
     VB_DRAW_OCARINA_IN_STK_HAND,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_DRAW_RUPEE_COUNTER,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_DRAW_RUPEE_ICON,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_DRAW_OCARINA_STAFF,
 
     // #### `result`
     // ```c
@@ -555,6 +649,14 @@ typedef enum {
     // - `*Vec3f` spawnPos
     // - `u16` params
     VB_DROP_COLLECTIBLE,
+
+    // #### `result`
+    // ```c
+    // (CURRENT_DAY == 3) && (CutsceneManager_GetCurrentCsId() == CS_ID_NONE)
+    // ```
+    // #### `args`
+    // - None
+    VB_EARTHQUAKE_ON_DAY_3,
 
     // #### `result`
     // ```c
@@ -635,6 +737,14 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - None
+    VB_FIRST_PERSON_CAMERA,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `*EnFish2`
     VB_FISH2_SPAWN_HEART_PIECE,
 
@@ -653,6 +763,24 @@ typedef enum {
     // #### `args`
     // - None
     VB_EN_FSN_HAS_ITEMS,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*EnGs`
+    // - `*PlayState`
+    VB_EN_GS_BEFORE_GOSSIP_GROTTO_SEQUENCE,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*EnGs`
+    // - `*PlayState`
+    VB_EN_GS_FINISH_OCARINA_ON_RESET,
 
     // #### `result`
     // ```c
@@ -907,6 +1035,14 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `ObjDora*`
+    VB_GONG_DROP_COLLECTIBLE,
+
+    // #### `result`
+    // ```c
     // phi_f0 > 0.0f
     // ```
     // #### `args`
@@ -1077,11 +1213,43 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `u8` (btn)
+    VB_INTERFACE_LOAD_DPAD_ITEM_ICON,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `u8` (btn)
+    VB_INTERFACE_LOAD_ITEM_ICON,
+
+    // #### `result`
+    // ```c
     // !gPlayerFormItemRestrictions[GET_PLAYER_FORM][itemId]
     // ```
     // #### `args`
     // - `*ItemId`
     VB_ITEM_BE_RESTRICTED,
+
+    // #### `result`
+    // ```c
+    // bubble != NULL
+    // ```
+    // #### `args`
+    // - `*Player`
+    VB_DEKU_COMMON_HEAD_OVERRIDE_HELD_ACTOR,
+
+    // #### `result`
+    // ```c
+    // player->heldActor != NULL
+    // ```
+    // #### `args`
+    // - `*Actor` (player->heldActor)
+    VB_DEKU_COMMON_UPPER_LIMB_OVERRIDE_HELD_ACTOR,
 
     // #### `result`
     // ```c
@@ -1131,6 +1299,25 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - `PauseContext*`
+    // - `GraphicsContext*`
+    // - `s16` (item)
+    // - `u16` (ammoIndex)
+    VB_KALEIDO_DRAW_AMMO_COUNT,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `ItemId*` (draw item, mutable)
+    VB_KALEIDO_DRAW_EQUIP_ANIM_ICON,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `u16` (cursor slot)
     // - `u16` (cursor item)
     VB_KALEIDO_EQUIP_ITEM_TO_BUTTON,
@@ -1150,6 +1337,23 @@ typedef enum {
     // #### `args`
     // - None
     VB_KALEIDO_UNPAUSE_CLOSE,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*EnKusa2`
+    // - `s32` (index within the patch)
+    VB_KEATON_GRASS_ATTACH_CHILD,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*EnKusa2`
+    VB_KEATON_GRASS_DRAW,
 
     // #### `result`
     // ```c
@@ -1181,7 +1385,15 @@ typedef enum {
     // ```
     // #### `args`
     // - `*EnKusa`
-    VB_KUSA_BUSH_DRAW_BE_OVERRIDDEN,
+    VB_KUSA_DRAW_BE_OVERRIDDEN,
+
+    // #### `result`
+    // ```c
+    // play->actorCtx.actorLists[ACTORCAT_EXPLOSIVES].length >= 3
+    // ```
+    // #### `args`
+    // - None
+    VB_LIMIT_EXPLOSIVES,
 
     // #### `result`
     // ```c
@@ -1256,6 +1468,14 @@ typedef enum {
     // #### `args`
     // - `*EnMnk`
     VB_MONKEY_WAIT_TO_TALK_AFTER_APPROACH,
+
+    // #### `result`
+    // ```c
+    // CHECK_BTN_ALL(controller->press.button, BTN_A) || ...
+    // ```
+    // #### `args`
+    // - None
+    VB_MSG_ADVANCE,
 
     // #### `result`
     // ```c
@@ -1422,6 +1642,22 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // false
+    // ```
+    // #### `args`
+    // - `*OcarinaStaff` (the currently playing staff; state can be overridden to force a song)
+    VB_OVERRIDE_OCARINA_STAFF_STATE,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*EnOwl`
+    VB_OWL_SPAWN_FEATHER,
+
+    // #### `result`
+    // ```c
     // true
     // ```
     // #### `args`
@@ -1443,6 +1679,14 @@ typedef enum {
     // #### `args`
     // - `*EnOwl`
     VB_OWL_TELL_ABOUT_SHRINE,
+
+    // #### `result`
+    // ```c
+    // pauseCtx->state == PAUSE_STATE_OWL_WARP_SELECT
+    // ```
+    // #### `args`
+    // - None
+    VB_OWL_WARP_MENU_USE_LINEAR_CURSOR,
 
     // #### `result`
     // ```c
@@ -1502,6 +1746,48 @@ typedef enum {
     // - `*ColliderElement atElem` (unused)
     // - `*ColliderElement acElem`
     VB_PERFORM_AC_COLLISION,
+
+    // #### `result`
+    // ```c
+    // play->actorCtx.flags & ACTORCTX_FLAG_PICTO_BOX_ON
+    // ```
+    // #### `args`
+    // - None
+    VB_PICTO_ACTIVATE,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_PICTO_DISPLAY,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `*PreRender` (prerender)
+    VB_PICTO_TAKE,
+
+    // #### `result`
+    // ```c
+    // i < ARRAY_COUNT(D_8085D798)
+    // ```
+    // #### `args`
+    // - `*Player`
+    // - `*Actor` (interactRangeActor)
+    // - `ItemId`
+    // - `PlayerItemAction`
+    VB_PLAY_BOTTLE_CATCH_TEXT,
+
+    // !Play_InCsMode(play) && (play->roomCtx.curRoom.num == 2)
+    // ```
+    // #### `args`
+    // - `*EnTest3` (Kafei)
+    // - `*s32` (cutscene phase)
+    VB_PLAY_COUPLES_MASK_CS,
 
     // #### `result`
     // ```c
@@ -1650,6 +1936,38 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // ammo == 1
+    // ```
+    // #### `args`
+    // - None
+    VB_POWDER_KEG_AMMO_AT_CAPACITY,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_POWDER_KEG_CAP_AMMO,
+
+    // #### `result`
+    // ```c
+    // (AMMO(ITEM_POWDER_KEG) != 0) || (play->actorCtx.flags & ACTORCTX_FLAG_0)
+    // ```
+    // #### `args`
+    // - None
+    VB_POWDER_KEG_CHECK_HAS,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - None
+    VB_POWDER_KEG_SET_AMMO_ON_GIVE,
+
+    // #### `result`
+    // ```c
     // false
     // ```
     // #### `args`
@@ -1717,6 +2035,14 @@ typedef enum {
     // true
     // ```
     // #### `args`
+    // - None
+    VB_ROTATE_GROTTO_ENTRANCE,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
     // - `*EnSuttari`
     VB_SAKON_TAKE_DAMAGE,
 
@@ -1767,6 +2093,14 @@ typedef enum {
     // #### `args`
     // - None
     VB_SET_BLAST_MASK_COOLDOWN_TIMER,
+
+    // #### `result`
+    // ```c
+    // false
+    // ```
+    // #### `args`
+    // - None
+    VB_SET_BUTTON_ENV_COLOR,
 
     // #### `result`
     // ```c
@@ -2124,11 +2458,37 @@ typedef enum {
 
     // #### `result`
     // ```c
+    // btn <= EQUIP_SLOT_NONE
+    // ```
+    // #### `args`
+    // - `*Player`
+    // - `*s32` (button)
+    VB_UNEQUIP_MASK_NOT_ON_BUTTON,
+
+    // #### `result`
+    // ```c
+    // true
+    // ```
+    // #### `args`
+    // - `Player*`
+    VB_USE_BOTTLE_ITEM,
+
+    // #### `result`
+    // ```c
     // true
     // ```
     // #### `args`
     // - `*Camera`
     VB_USE_CUSTOM_CAMERA,
+
+    // #### `result`
+    // ```c
+    // (this->modelAnimType != PLAYER_ANIMTYPE_3) && (this->heldItemAction != PLAYER_IA_DEKU_STICK) &&
+    // (play->bButtonAmmoPlusOne == 0)
+    // ```
+    // #### `args`
+    // - `*Player`
+    VB_USE_HELD_ITEM_AFTER_CHANGE,
 
     // #### `result`
     // ```c

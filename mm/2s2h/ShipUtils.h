@@ -20,7 +20,7 @@
 #include <imgui.h>
 #include "Rando/Rando.h"
 void LoadGuiTextures();
-std::string convertEnumToReadableName(const std::string& input);
+std::string convertEnumToReadableName(const std::string& input, const std::string& prefix = "RC_");
 std::string Ship_RemoveSpecialCharacters(const std::string& str);
 extern u16 sOwlWarpEntrancesForMods[];
 extern std::array<const char*, 11> digitList;
@@ -49,6 +49,10 @@ f32 Ship_GetCharFontWidthNES(u8 character);
 TexturePtr Ship_GetCharFontTextureNES(u8 character);
 void Ship_Random_Seed(u64 seed);
 s32 Ship_Random(s32 min, s32 max);
+
+extern Vtx sCycleExtraItemVtx[8];
+extern Vtx sCycleAButtonVtx[4];
+void Ship_DrawKaleidoCycleAButtonPrompt(PlayState* play, u8 alpha);
 
 #ifdef __cplusplus
 }

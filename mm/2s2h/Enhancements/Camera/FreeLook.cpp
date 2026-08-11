@@ -137,9 +137,19 @@ bool Camera_FreeLook(Camera* camera) {
     *eyeNext = OLib_AddVecGeoToVec3f(at, &eyeAdjustment);
     // Apply new camera angle only when camera active
     if (camera->status == CAM_STATUS_ACTIVE) {
-        *eye = *eyeNext;
-        // Adjust camera for collision with floors, walls and ceilings.
-        func_800CBFA4(camera, at, eye, 0);
+        CameraCollision camCollision = {};
+        camCollision.pos = *eyeNext;
+
+        if (Camera_BgCheckInfo(camera, at, &camCollision)) {
+            f32 collDist = Math3D_Vec3f_DistXYZ(at, &camCollision.pos);
+            eyeAdjustment.r = collDist - 3.0f;
+            *eye = OLib_AddVecGeoToVec3f(at, &eyeAdjustment);
+        } else {
+            *eye = *eyeNext;
+        }
+
+        camera->dist = Math3D_Vec3f_DistXYZ(at, eye);
+        camera->eyeNext = *eye;
     }
 
     // 65.0f based on value from SoH
@@ -196,6 +206,14 @@ void RegisterCameraFreeLook() {
                 if (Camera_CanFreeLook(camera)) {
                     Camera_FreeLook(camera);
                     *should = false;
+                }
+                break;
+            case CAM_FUNC_PARALLEL1:
+                if (camera->mode == CAM_MODE_HANG) {
+                    if (Camera_CanFreeLook(camera)) {
+                        Camera_FreeLook(camera);
+                        *should = false;
+                    }
                 }
                 break;
             default:

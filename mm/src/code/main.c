@@ -63,17 +63,18 @@ void wait_for_java_setup() {
 }
 #endif
 
-void InitOTR();
+void InitOTR(int argc, char* argv[]);
 void Heaps_Free(void);
 #ifdef __GNUC__
 #define SDL_main main
 #endif
+
 #ifdef __ANDROID__
 int SDL_main(int argc, char** argv /* void* arg*/) {
     wait_for_java_setup(); // Pause here until Java is ready
-#else
-void SDL_main(int argc, char** argv /* void* arg*/) {
 #endif
+
+int SDL_main(int argc, char* argv[] /* void* arg*/) {
     intptr_t fb;
     intptr_t sysHeap;
     s32 exit;
@@ -92,7 +93,7 @@ void SDL_main(int argc, char** argv /* void* arg*/) {
     setlocale(LC_ALL, ".UTF8");
 #endif // _WIN32
 
-    InitOTR();
+    InitOTR(argc, argv);
     CrashHandlerRegisterCallback(CrashHandler_PrintExt);
     Heaps_Alloc();
 

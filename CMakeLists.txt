@@ -156,6 +156,11 @@ include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 ################################################################################
+# Set CONTROLLERBUTTONS_T
+################################################################################
+add_compile_definitions(CONTROLLERBUTTONS_T=uint32_t)
+
+################################################################################
 # Sub-projects
 ################################################################################
 add_subdirectory(libultraship ${CMAKE_BINARY_DIR}/libultraship)
@@ -181,6 +186,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android" AND DEFINED ANDROID_VCPKG_ROOT)
         endif()
     endif()
 endif()
+
+# LUS ships no PCH of its own and these headers dominate its build. Done here rather than in the
+# submodule, and PRIVATE, so nothing about its public interface changes.
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU|MSVC")
+    target_precompile_headers(libultraship PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:<ship/Context.h$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<ship/resource/ResourceManager.h$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<ship/window/Window.h$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<spdlog/spdlog.h$<ANGLE-R>>"
+    )
+    # Clang replays a PCH's pending template instantiations in every consuming TU unless told to do
+    # the work up front. MSVC's PCH already behaves this way.
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+        target_compile_options(libultraship PRIVATE
+            $<$<COMPILE_LANGUAGE:CXX>:-fpch-instantiate-templates>
+        )
+    endif()
+endif()
+
 add_subdirectory(ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
 add_subdirectory(OTRExporter)
 add_subdirectory(mm)

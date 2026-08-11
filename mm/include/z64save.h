@@ -388,6 +388,8 @@ typedef struct RandoSaveInfo {
     u16 randoStartingItems[256]; // Max 256 starting items, using u16 in case we add more than 255 items
     s8 foundDungeonKeys[9]; // Tracks the number of dungeon keys found, opposed to the number of keys in the inventory
     u16 foundTriforcePieces;
+    u8 sariaHintsAvailable;
+    u16 sariaPriorityItems[16];
 } RandoSaveInfo;
 
 // These are values added by 2S2H that we need to be persisted to the save file
@@ -402,6 +404,7 @@ typedef struct ShipSaveInfo {
     RespawnData respawn[RESPAWN_MODE_MAX];
     char commitHash[8];
     RandoSaveInfo rando;
+    u8 bombArrowsEquipped;
 } ShipSaveInfo;
 // #endregion
 
@@ -1854,6 +1857,7 @@ void Sram_EraseSave(struct FileSelectState* fileSelect2, SramContext* sramCtx, s
 void Sram_CopySave(struct FileSelectState* fileSelect2, SramContext* sramCtx);
 void Sram_InitSave(struct FileSelectState* fileSelect2, SramContext* sramCtx);
 void Sram_WriteSaveOptionsToBuffer(SramContext* sramCtx);
+void Sram_LoadGlobalOptions(void);
 void Sram_InitSram(struct GameState* gameState, SramContext* sramCtx);
 void Sram_Alloc(struct GameState* gameState, SramContext* sramCtx);
 void Sram_SaveSpecialEnterClockTown(struct PlayState* play);

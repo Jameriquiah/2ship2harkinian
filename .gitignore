@@ -3,6 +3,7 @@
 *.o2r
 .DS_Store
 .vscode
+.idea
 *.swp
 logs
 *.nix
@@ -13,6 +14,7 @@ shipofharkinian.json
 imgui.ini
 saves/*
 randomizer/*
+mods/*
 2S2HTimeSplitData.json
 
 mm/libultraship/extern/Debug/ImGui.lib
@@ -71,3 +73,4 @@ _packages/
 /clang-format.exe
 
 build/
+.cache
