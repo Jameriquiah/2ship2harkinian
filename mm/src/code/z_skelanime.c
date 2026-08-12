@@ -1068,7 +1068,8 @@ void AnimTaskQueue_AddLoadPlayerFrame(PlayState* play, PlayerAnimationHeader* an
         if (animData == NULL) {
             return;
         }
-        memcpy(ram, (uintptr_t)animData + (((sizeof(Vec3s) * limbCount + 2) * frame)), sizeof(Vec3s) * limbCount + 2);
+        memcpy(ram, (void*)(uintptr_t)animData + (((sizeof(Vec3s) * limbCount + 2) * frame)),
+               sizeof(Vec3s) * limbCount + 2);
     }
 }
 
